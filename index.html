@@ -4,8 +4,11 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dashboard MCNS | Analítica Avanzada</title>
+    
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.0.0"></script>
+
     <style>
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -17,10 +20,8 @@
             box-shadow: 0 4px 6px rgba(0,0,0,0.05);
         }
         .controles select {
-            padding: 10px; font-size: 16px; border-radius: 5px; border: 1px solid #ccc;
-            outline: none; cursor: pointer;
+            padding: 10px; font-size: 16px; border-radius: 5px; border: 1px solid #ccc; cursor: pointer;
         }
-        /* Sistema de Cuadrícula (Grid) Automático */
         .dashboard-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
@@ -29,13 +30,27 @@
         .panel {
             background: white; padding: 20px; border-radius: 10px;
             box-shadow: 0 4px 6px rgba(0,0,0,0.05);
-            transition: all 0.3s ease;
         }
-        /* Hacemos que el panel principal ocupe toda la fila superior */
-        .panel-principal { grid-column: 1 / -1; }
         
+        /* Contenedor principal con Proporción Áurea (Aprox 16:10 / 1.618) y altura máxima controlada */
+        .panel-principal { 
+            grid-column: 1 / -1; 
+            display: flex; flex-direction: column; align-items: center;
+        }
+        .contenedor-grafico-principal {
+            position: relative;
+            width: 100%;
+            max-width: 1000px;
+            height: 450px; /* Evita que crezca desproporcionadamente */
+        }
+        .contenedor-grafico-secundario {
+            position: relative;
+            width: 100%;
+            height: 300px;
+        }
+
         h3 { text-align: center; color: #2c3e50; font-size: 1.1em; margin-top: 0; }
-        .instruccion { text-align: center; font-size: 0.85em; color: #7f8c8d; margin-bottom: 15px; }
+        .instruccion { text-align: center; font-size: 0.85em; color: #7f8c8d; margin-bottom: 10px; }
     </style>
 </head>
 <body>
@@ -45,68 +60,76 @@
         <div class="controles">
             <label for="selectorAnio"><strong>Filtrar por Año: </strong></label>
             <select id="selectorAnio" onchange="procesarDatos()">
-                <option value="TODOS">Todos los años</option>
+                <option value="TODOS">Todos los años comparados</option>
             </select>
-            <button onclick="resetearFiltroMes()" style="padding: 10px; margin-left:10px; cursor:pointer; background:#3498db; color:white; border:none; border-radius:5px;">Quitar filtro de Mes</button>
+            <button onclick="resetearFiltroMes()" style="padding: 10px; margin-left:10px; cursor:pointer; background:#e74c3c; color:white; border:none; border-radius:5px; font-weight:bold;">Quitar filtro de Mes</button>
         </div>
     </div>
 
     <div class="dashboard-grid">
         <div class="panel panel-principal">
             <h3>NÚMERO TOTAL DE PERSONAS ASISTENTES (Por Mes)</h3>
-            <p class="instruccion">👆 Haz clic en una barra para filtrar los demás paneles por ese mes</p>
-            <canvas id="chartAsistentes"></canvas>
+            <p class="instruccion">👆 Haz clic en una barra para filtrar los paneles inferiores por ese mes</p>
+            <div class="contenedor-grafico-principal">
+                <canvas id="chartAsistentes"></canvas>
+            </div>
         </div>
 
         <div class="panel">
-            <h3>GRUPOS POR INSTITUCIÓN U ORGANIZACIÓN</h3>
-            <canvas id="chartGrupos"></canvas>
+            <h3>GRUPOS POR INSTITUCIÓN</h3>
+            <div class="contenedor-grafico-secundario">
+                <canvas id="chartGrupos"></canvas>
+            </div>
         </div>
 
         <div class="panel">
-            <h3>ASISTENTES POR RANGO DE EDAD</h3>
-            <canvas id="chartEdad"></canvas>
+            <h3>ASISTENTES POR EDAD</h3>
+            <div class="contenedor-grafico-secundario">
+                <canvas id="chartEdad"></canvas>
+            </div>
         </div>
 
         <div class="panel">
             <h3>PROPORCIÓN DE GÉNERO (M vs F)</h3>
-            <canvas id="chartGenero"></canvas>
+            <div class="contenedor-grafico-secundario">
+                <canvas id="chartGenero"></canvas>
+            </div>
         </div>
     </div>
 
     <script>
+        // Registrar el plugin de etiquetas globales
+        Chart.register(ChartDataLabels);
+
+        // Configuración global para que los números no se amontonen
+        Chart.defaults.set('plugins.datalabels', {
+            color: '#2c3e50',
+            anchor: 'end',
+            align: 'top',
+            font: { weight: 'bold', size: 10 },
+            formatter: (value) => { return value > 0 ? value : ''; } // Oculta los ceros
+        });
+
         const urlCSV = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vS7f26O3sj6abtatPWdf3wa4hdGxMI5gjOZU--SYrJ92jTxZ9Ch6LrTESm_XjWeIRFTrnKJq-c2aed9/pub?output=csv';
 
-        // Variables de estado del Dashboard
         let datosGlobales = [];
         let aniosDetectados = new Set();
-        let mesSeleccionado = null; // Para el cross-filtering
+        let mesSeleccionado = null; 
         
-        // Instancias de los gráficos
-        let graficos = {
-            asistentes: null,
-            grupos: null,
-            edad: null,
-            genero: null
-        };
-
+        let graficos = { asistentes: null, grupos: null, edad: null, genero: null };
         const mesesOrden = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
+        
+        // Gradiente de azules para los distintos años
+        const paletaAzules = ['#08306b', '#2171b5', '#6baed6', '#bdd7e7', '#eff3ff'];
 
         Papa.parse(urlCSV, {
             download: true, header: true, dynamicTyping: true,
             complete: function(resultados) {
-                // 1. Limpieza técnica de la matriz original
                 datosGlobales = resultados.data.map(fila => {
                     let mesLimpio = "Desconocido";
                     let anioStr = "Desconocido";
 
-                    // Limpiar la columna MES (remover el '-02', '-25', etc.)
-                    if (fila['MES']) {
-                        let partesMes = String(fila['MES']).toLowerCase().split('-');
-                        mesLimpio = partesMes[0].trim();
-                    }
-
-                    // Extraer Año de la FECHA
+                    if (fila['MES']) mesLimpio = String(fila['MES']).toLowerCase().split('-')[0].trim();
                     if (fila['FECHA']) {
                         let match = String(fila['FECHA']).match(/\d{4}/);
                         if (match) {
@@ -115,20 +138,26 @@
                         }
                     }
 
+                    // Limpieza estricta para M y F buscando la clave exacta en caso de que tenga espacios
+                    let mVal = 0; let fVal = 0;
+                    for (let key in fila) {
+                        if (key.trim() === 'M') mVal = parseInt(fila[key]) || 0;
+                        if (key.trim() === 'F') fVal = parseInt(fila[key]) || 0;
+                    }
+
                     return {
-                        ...fila,
                         MES_LIMPIO: mesLimpio,
                         ANIO: anioStr,
                         ASISTENTES: parseInt(fila['NÚMERO TOTAL DE PERSONAS ASISTENTES']) || 0,
                         GRUPOS: parseInt(fila['NÚMERO DE GRUPOS POR INSTITUCIÓN U ORGANIZACIÓN COMUNITARIA']) || 0,
-                        M: parseInt(fila['M']) || 0,
-                        F: parseInt(fila['F']) || 0,
-                        EDAD: fila['RANGO DE EDAD'] || 'Sin clasificar'
+                        M: mVal,
+                        F: fVal,
+                        EDAD: fila['RANGO DE EDAD'] ? String(fila['RANGO DE EDAD']).trim() : 'Sin clasificar'
                     };
-                }).filter(d => d.ASISTENTES > 0 || d.GRUPOS > 0); // Omitir filas totalmente vacías
+                }).filter(d => d.ASISTENTES > 0 || d.GRUPOS > 0 || d.M > 0 || d.F > 0);
 
                 llenarSelectorAnios();
-                procesarDatos(); // Iniciar renderizado
+                procesarDatos(); 
             }
         });
 
@@ -136,92 +165,97 @@
             const selector = document.getElementById('selectorAnio');
             Array.from(aniosDetectados).sort().forEach(anio => {
                 let opcion = document.createElement('option');
-                opcion.value = anio;
-                opcion.text = anio;
+                opcion.value = anio; opcion.text = "Año " + anio;
                 selector.appendChild(opcion);
             });
         }
 
-        // Función central de procesamiento y cruce de datos
         function procesarDatos() {
             const anioElegido = document.getElementById('selectorAnio').value;
-            
-            // Filtro 1: Año
-            let datosFiltrados = datosGlobales;
-            if (anioElegido !== "TODOS") {
-                datosFiltrados = datosFiltrados.filter(d => d.ANIO === anioElegido);
+            let datosFiltradosPorAnio = (anioElegido === "TODOS") ? datosGlobales : datosGlobales.filter(d => d.ANIO === anioElegido);
+
+            // 1. LÓGICA DEL PANEL PRINCIPAL (Barras agrupadas vs Barra única)
+            let datasetsPrincipal = [];
+
+            if (anioElegido === "TODOS") {
+                // Modo comparativo: Un color/dataset por año
+                let anios = Array.from(aniosDetectados).sort();
+                anios.forEach((anio, index) => {
+                    let datosAnioMes = mesesOrden.map(m => {
+                        return datosGlobales.filter(d => d.ANIO === anio && d.MES_LIMPIO === m)
+                                            .reduce((sum, d) => sum + d.ASISTENTES, 0);
+                    });
+                    datasetsPrincipal.push({
+                        label: 'Asistentes ' + anio,
+                        data: datosAnioMes,
+                        backgroundColor: paletaAzules[index % paletaAzules.length],
+                        borderRadius: 4
+                    });
+                });
+            } else {
+                // Modo único: Muestra el año elegido e indica si hay un mes seleccionado
+                let datosMes = mesesOrden.map(m => {
+                    return datosFiltradosPorAnio.filter(d => d.MES_LIMPIO === m)
+                                                .reduce((sum, d) => sum + d.ASISTENTES, 0);
+                });
+                let coloresMeses = mesesOrden.map(m => (mesSeleccionado === null || mesSeleccionado === m) ? '#3498db' : '#bdc3c7');
+                datasetsPrincipal.push({
+                    label: 'Asistentes ' + anioElegido,
+                    data: datosMes,
+                    backgroundColor: coloresMeses,
+                    borderRadius: 4
+                });
             }
 
-            // Mapeo temporal para Panel 1
-            let datosMeses = {};
-            mesesOrden.forEach(m => datosMeses[m] = { asistentes: 0, grupos: 0 });
+            actualizarGraficoAvanzado('asistentes', 'chartAsistentes', 'bar', mesesOrden, datasetsPrincipal);
 
-            datosFiltrados.forEach(d => {
-                if (datosMeses[d.MES_LIMPIO] !== undefined) {
-                    datosMeses[d.MES_LIMPIO].asistentes += d.ASISTENTES;
-                    datosMeses[d.MES_LIMPIO].grupos += d.GRUPOS;
-                }
-            });
-
-            // Extraer arreglos para Chart.js respetando el orden del calendario
-            const labelsMeses = mesesOrden;
-            const dataAsistentesMes = mesesOrden.map(m => datosMeses[m].asistentes);
-            
-            // Colorear diferente si hay un mes seleccionado (Cross-filtering)
-            const coloresMeses = mesesOrden.map(m => 
-                (mesSeleccionado === null || mesSeleccionado === m) ? '#3498db' : '#bdc3c7'
-            );
-
-            actualizarGrafico('asistentes', 'chartAsistentes', 'bar', labelsMeses, dataAsistentesMes, coloresMeses, 'Asistentes Totales');
-
-            // --- FILTRO CRUZADO PARA LOS PANELES INFERIORES ---
-            // Si el usuario hizo clic en un mes, los paneles de abajo solo muestran datos de ese mes
-            let datosPanelesSecundarios = datosFiltrados;
+            // 2. LÓGICA DE LOS PANELES INFERIORES (Cross-filtering)
+            let datosSecundarios = datosFiltradosPorAnio;
             if (mesSeleccionado) {
-                datosPanelesSecundarios = datosFiltrados.filter(d => d.MES_LIMPIO === mesSeleccionado);
+                datosSecundarios = datosFiltradosPorAnio.filter(d => d.MES_LIMPIO === mesSeleccionado);
             }
 
-            // Procesar Grupos por Mes (Panel 2)
-            let dataGruposMes = mesesOrden.map(m => datosMeses[m].grupos);
-            actualizarGrafico('grupos', 'chartGrupos', 'bar', labelsMeses, dataGruposMes, '#2ecc71', 'Grupos Totales');
-
-            // Procesar Edades (Panel 3)
-            let edadesMap = {};
-            datosPanelesSecundarios.forEach(d => {
-                edadesMap[d.EDAD] = (edadesMap[d.EDAD] || 0) + d.ASISTENTES;
+            // Grupos (Sumatoria por mes para el periodo/mes filtrado)
+            let datosGruposMes = mesesOrden.map(m => {
+                return datosSecundarios.filter(d => d.MES_LIMPIO === m).reduce((sum, d) => sum + d.GRUPOS, 0);
             });
-            actualizarGrafico('edad', 'chartEdad', 'bar', Object.keys(edadesMap), Object.values(edadesMap), '#9b59b6', 'Asistentes por Edad');
+            actualizarGraficoBasico('grupos', 'chartGrupos', 'bar', mesesOrden, datosGruposMes, '#2ecc71', 'Grupos');
 
-            // Procesar Género (Panel 4)
+            // Edad
+            let edadesMap = {};
+            datosSecundarios.forEach(d => {
+                if (d.EDAD !== 'Sin clasificar') edadesMap[d.EDAD] = (edadesMap[d.EDAD] || 0) + d.ASISTENTES;
+            });
+            actualizarGraficoBasico('edad', 'chartEdad', 'bar', Object.keys(edadesMap), Object.values(edadesMap), '#9b59b6', 'Asistentes');
+
+            // Género
             let totalM = 0; let totalF = 0;
-            datosPanelesSecundarios.forEach(d => { totalM += d.M; totalF += d.F; });
+            datosSecundarios.forEach(d => { totalM += d.M; totalF += d.F; });
+            
+            // Renderizamos pastel si hay datos, o borramos si no hay
             actualizarGraficoPie('genero', 'chartGenero', ['Masculino (M)', 'Femenino (F)'], [totalM, totalF], ['#34495e', '#e74c3c']);
         }
 
-        // Función genérica para renderizar o actualizar Barras
-        function actualizarGrafico(idGrafico, idCanvas, tipo, etiquetas, valores, colores, labelDataset) {
+        // MOTOR DE DIBUJO PARA CHART.JS
+        function actualizarGraficoAvanzado(idGrafico, idCanvas, tipo, etiquetas, configDatasets) {
             const ctx = document.getElementById(idCanvas).getContext('2d');
-            
             if (graficos[idGrafico]) {
                 graficos[idGrafico].data.labels = etiquetas;
-                graficos[idGrafico].data.datasets[0].data = valores;
-                graficos[idGrafico].data.datasets[0].backgroundColor = colores;
+                graficos[idGrafico].data.datasets = configDatasets;
                 graficos[idGrafico].update();
             } else {
                 graficos[idGrafico] = new Chart(ctx, {
                     type: tipo,
-                    data: {
-                        labels: etiquetas,
-                        datasets: [{ label: labelDataset, data: valores, backgroundColor: colores, borderRadius: 4 }]
-                    },
+                    data: { labels: etiquetas, datasets: configDatasets },
                     options: {
                         responsive: true,
-                        // Configuración del Cross-Filtering (Solo activo para el gráfico principal)
+                        maintainAspectRatio: false, // Fundamental para respetar el CSS
+                        layout: { padding: { top: 20 } }, // Espacio para los números
                         onClick: (evt, elementos) => {
-                            if (idGrafico === 'asistentes' && elementos.length > 0) {
+                            if (elementos.length > 0) {
                                 const indice = elementos[0].index;
                                 mesSeleccionado = etiquetas[indice];
-                                procesarDatos(); // Recalcular todo el dashboard basado en este mes
+                                procesarDatos();
                             }
                         }
                     }
@@ -229,20 +263,30 @@
             }
         }
 
-        // Función dedicada para el gráfico de Pastel (Género)
+        function actualizarGraficoBasico(idGrafico, idCanvas, tipo, etiquetas, valores, colores, labelDataset) {
+            actualizarGraficoAvanzado(idGrafico, idCanvas, tipo, etiquetas, [{
+                label: labelDataset, data: valores, backgroundColor: colores, borderRadius: 4
+            }]);
+        }
+
         function actualizarGraficoPie(idGrafico, idCanvas, etiquetas, valores, colores) {
             const ctx = document.getElementById(idCanvas).getContext('2d');
+            
+            // Si todo está en 0, no dibujamos el pastel para no mostrar error
+            if (valores[0] === 0 && valores[1] === 0) valores = [];
+
             if (graficos[idGrafico]) {
                 graficos[idGrafico].data.datasets[0].data = valores;
                 graficos[idGrafico].update();
             } else {
                 graficos[idGrafico] = new Chart(ctx, {
                     type: 'doughnut',
-                    data: {
-                        labels: etiquetas,
-                        datasets: [{ data: valores, backgroundColor: colores }]
-                    },
-                    options: { responsive: true, maintainAspectRatio: false }
+                    data: { labels: etiquetas, datasets: [{ data: valores, backgroundColor: colores }] },
+                    options: { 
+                        responsive: true, 
+                        maintainAspectRatio: false,
+                        plugins: { datalabels: { color: '#fff', font: { size: 14 } } }
+                    }
                 });
             }
         }
