@@ -269,23 +269,56 @@
         // Lógica de dibujo del mapa basada en la comuna seleccionada
         function actualizarMapa(datosMapear) {
             capaMarcadores.clearLayers(); 
+            
+            // 1. Crear un agrupador temporal para sumar coordenadas idénticas
+            let agrupacionGeografica = {};
+
             datosMapear.forEach(d => {
-                // Filtro cruzado territorial: Si hay una comuna seleccionada, ignoramos las demás burbujas
+                // Filtro territorial cruzado
                 if (comunaSeleccionada !== null && d.COMUNA !== comunaSeleccionada) return;
 
                 if (!isNaN(d.LAT) && !isNaN(d.LON)) {
-                    // Tamaño de la burbuja: raíz cuadrada para normalizar valores gigantes
-                    let radioBurbuja = Math.max(4, Math.sqrt(d.ASISTENTES) * 1.5);
-                    let colorDinamico = obtenerColorTerritorio(d.COMUNA); 
-                    
-                    let marcador = L.circleMarker([d.LAT, d.LON], {
-                        radius: radioBurbuja, color: colorDinamico, fillColor: colorDinamico, fillOpacity: 0.7, weight: 1
-                    });
+                    // Creamos una "llave" única combinando latitud, longitud e institución
+                    let llaveUnica = d.LAT + "_" + d.LON + "_" + d.INSTITUCION;
 
-                    // Tarjeta de información (Popup)
-                    let popupHTML = `<div style="text-align:center; font-family: sans-serif;"><strong style="color: #2c3e50;">${d.INSTITUCION}</strong><br><span style="color:#7f8c8d;">${d.COMUNA}</span><hr style="margin:5px 0;"><strong style="color:${colorDinamico}; font-size:16px;">${d.ASISTENTES} Asistentes</strong></div>`;
-                    marcador.bindPopup(popupHTML); capaMarcadores.addLayer(marcador);
+                    // Si la ubicación no existe en el agrupador, la creamos
+                    if (!agrupacionGeografica[llaveUnica]) {
+                        agrupacionGeografica[llaveUnica] = {
+                            lat: d.LAT,
+                            lon: d.LON,
+                            institucion: d.INSTITUCION,
+                            comuna: d.COMUNA,
+                            asistentes: 0 // Iniciamos el contador
+                        };
+                    }
+                    // Sumamos los asistentes de esta fila al total de esa ubicación
+                    agrupacionGeografica[llaveUnica].asistentes += d.ASISTENTES;
                 }
+            });
+
+            // 2. Ahora sí, dibujamos las burbujas consolidadas en el mapa
+            Object.values(agrupacionGeografica).forEach(punto => {
+                // Usamos la raíz cuadrada para que las burbujas de 5000 no tapen media ciudad
+                let radioBurbuja = Math.max(4, Math.sqrt(punto.asistentes) * 1.2);
+                let colorDinamico = obtenerColorTerritorio(punto.comuna); 
+                
+                let marcador = L.circleMarker([punto.lat, punto.lon], {
+                    radius: radioBurbuja, 
+                    color: colorDinamico, 
+                    fillColor: colorDinamico, 
+                    fillOpacity: 0.7, 
+                    weight: 1
+                });
+
+                let popupHTML = `
+                    <div style="text-align:center; font-family: sans-serif;">
+                        <strong style="color: #2c3e50;">${punto.institucion}</strong><br>
+                        <span style="color:#7f8c8d;">${punto.comuna}</span><hr style="margin:5px 0;">
+                        <strong style="color:${colorDinamico}; font-size:16px;">${punto.asistentes} Asistentes Totales</strong>
+                    </div>`;
+                
+                marcador.bindPopup(popupHTML); 
+                capaMarcadores.addLayer(marcador);
             });
         }
 
