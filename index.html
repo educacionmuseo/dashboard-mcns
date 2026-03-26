@@ -3,95 +3,253 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard MCNS</title>
+    <title>Dashboard MCNS | Analítica Avanzada</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
     <style>
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background-color: #f4f6f8;
-            color: #333;
-            margin: 0; padding: 20px;
-            display: flex; flex-direction: column; align-items: center;
+            background-color: #eef2f5; color: #333; margin: 0; padding: 20px;
         }
-        .contenedor {
-            background: white;
-            padding: 30px;
-            border-radius: 10px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
-            width: 100%; max-width: 900px;
+        .header {
+            display: flex; justify-content: space-between; align-items: center;
+            background: white; padding: 20px; border-radius: 10px; margin-bottom: 20px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
         }
-        h2 { text-align: center; color: #2c3e50; }
-        canvas { margin-top: 20px; }
+        .controles select {
+            padding: 10px; font-size: 16px; border-radius: 5px; border: 1px solid #ccc;
+            outline: none; cursor: pointer;
+        }
+        /* Sistema de Cuadrícula (Grid) Automático */
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+            gap: 20px;
+        }
+        .panel {
+            background: white; padding: 20px; border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+            transition: all 0.3s ease;
+        }
+        /* Hacemos que el panel principal ocupe toda la fila superior */
+        .panel-principal { grid-column: 1 / -1; }
+        
+        h3 { text-align: center; color: #2c3e50; font-size: 1.1em; margin-top: 0; }
+        .instruccion { text-align: center; font-size: 0.85em; color: #7f8c8d; margin-bottom: 15px; }
     </style>
 </head>
 <body>
 
-    <div class="contenedor">
-        <h2>Asistencia Total por Mes - MCNS</h2>
-        <canvas id="graficoMuseo"></canvas>
+    <div class="header">
+        <h2>📊 Estadísticas del Museo MCNS</h2>
+        <div class="controles">
+            <label for="selectorAnio"><strong>Filtrar por Año: </strong></label>
+            <select id="selectorAnio" onchange="procesarDatos()">
+                <option value="TODOS">Todos los años</option>
+            </select>
+            <button onclick="resetearFiltroMes()" style="padding: 10px; margin-left:10px; cursor:pointer; background:#3498db; color:white; border:none; border-radius:5px;">Quitar filtro de Mes</button>
+        </div>
+    </div>
+
+    <div class="dashboard-grid">
+        <div class="panel panel-principal">
+            <h3>NÚMERO TOTAL DE PERSONAS ASISTENTES (Por Mes)</h3>
+            <p class="instruccion">👆 Haz clic en una barra para filtrar los demás paneles por ese mes</p>
+            <canvas id="chartAsistentes"></canvas>
+        </div>
+
+        <div class="panel">
+            <h3>GRUPOS POR INSTITUCIÓN U ORGANIZACIÓN</h3>
+            <canvas id="chartGrupos"></canvas>
+        </div>
+
+        <div class="panel">
+            <h3>ASISTENTES POR RANGO DE EDAD</h3>
+            <canvas id="chartEdad"></canvas>
+        </div>
+
+        <div class="panel">
+            <h3>PROPORCIÓN DE GÉNERO (M vs F)</h3>
+            <canvas id="chartGenero"></canvas>
+        </div>
     </div>
 
     <script>
-        // Enlace público de Google Sheets
         const urlCSV = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vS7f26O3sj6abtatPWdf3wa4hdGxMI5gjOZU--SYrJ92jTxZ9Ch6LrTESm_XjWeIRFTrnKJq-c2aed9/pub?output=csv';
 
-        // Usamos PapaParse para procesar el archivo directamente desde la URL
+        // Variables de estado del Dashboard
+        let datosGlobales = [];
+        let aniosDetectados = new Set();
+        let mesSeleccionado = null; // Para el cross-filtering
+        
+        // Instancias de los gráficos
+        let graficos = {
+            asistentes: null,
+            grupos: null,
+            edad: null,
+            genero: null
+        };
+
+        const mesesOrden = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
+
         Papa.parse(urlCSV, {
-            download: true,
-            header: true, // Usa la primera fila como nombres de variables
-            dynamicTyping: true, // Convierte números automáticamente
+            download: true, header: true, dynamicTyping: true,
             complete: function(resultados) {
-                const datos = resultados.data;
-                
-                // Objeto para sumar asistentes por mes
-                const asistenciaPorMes = {};
+                // 1. Limpieza técnica de la matriz original
+                datosGlobales = resultados.data.map(fila => {
+                    let mesLimpio = "Desconocido";
+                    let anioStr = "Desconocido";
 
-                datos.forEach(fila => {
-                    const mes = fila['MES'];
-                    const asistentes = fila['NÚMERO TOTAL DE PERSONAS ASISTENTES'];
-
-                    // Verificamos que la fila tenga un mes y un número válido
-                    if (mes && typeof asistentes === 'number') {
-                        if (!asistenciaPorMes[mes]) {
-                            asistenciaPorMes[mes] = 0;
-                        }
-                        asistenciaPorMes[mes] += asistentes; // Sumamos la asistencia
+                    // Limpiar la columna MES (remover el '-02', '-25', etc.)
+                    if (fila['MES']) {
+                        let partesMes = String(fila['MES']).toLowerCase().split('-');
+                        mesLimpio = partesMes[0].trim();
                     }
-                });
 
-                // Extraemos las variables para Chart.js
-                const etiquetasMeses = Object.keys(asistenciaPorMes);
-                const valoresAsistentes = Object.values(asistenciaPorMes);
+                    // Extraer Año de la FECHA
+                    if (fila['FECHA']) {
+                        let match = String(fila['FECHA']).match(/\d{4}/);
+                        if (match) {
+                            anioStr = match[0];
+                            aniosDetectados.add(anioStr);
+                        }
+                    }
 
-                dibujarGrafico(etiquetasMeses, valoresAsistentes);
-            },
-            error: function(error) {
-                console.error("Error al leer el CSV:", error);
+                    return {
+                        ...fila,
+                        MES_LIMPIO: mesLimpio,
+                        ANIO: anioStr,
+                        ASISTENTES: parseInt(fila['NÚMERO TOTAL DE PERSONAS ASISTENTES']) || 0,
+                        GRUPOS: parseInt(fila['NÚMERO DE GRUPOS POR INSTITUCIÓN U ORGANIZACIÓN COMUNITARIA']) || 0,
+                        M: parseInt(fila['M']) || 0,
+                        F: parseInt(fila['F']) || 0,
+                        EDAD: fila['RANGO DE EDAD'] || 'Sin clasificar'
+                    };
+                }).filter(d => d.ASISTENTES > 0 || d.GRUPOS > 0); // Omitir filas totalmente vacías
+
+                llenarSelectorAnios();
+                procesarDatos(); // Iniciar renderizado
             }
         });
 
-        // Función para renderizar la gráfica
-        function dibujarGrafico(etiquetas, valores) {
-            const ctx = document.getElementById('graficoMuseo').getContext('2d');
-            new Chart(ctx, {
-                type: 'bar', // Gráfico de barras
-                data: {
-                    labels: etiquetas,
-                    datasets: [{
-                        label: 'Número Total de Asistentes',
-                        data: valores,
-                        backgroundColor: '#3498db',
-                        borderRadius: 4
-                    }]
-                },
-                options: { 
-                    responsive: true,
-                    plugins: {
-                        legend: { display: true }
-                    }
+        function llenarSelectorAnios() {
+            const selector = document.getElementById('selectorAnio');
+            Array.from(aniosDetectados).sort().forEach(anio => {
+                let opcion = document.createElement('option');
+                opcion.value = anio;
+                opcion.text = anio;
+                selector.appendChild(opcion);
+            });
+        }
+
+        // Función central de procesamiento y cruce de datos
+        function procesarDatos() {
+            const anioElegido = document.getElementById('selectorAnio').value;
+            
+            // Filtro 1: Año
+            let datosFiltrados = datosGlobales;
+            if (anioElegido !== "TODOS") {
+                datosFiltrados = datosFiltrados.filter(d => d.ANIO === anioElegido);
+            }
+
+            // Mapeo temporal para Panel 1
+            let datosMeses = {};
+            mesesOrden.forEach(m => datosMeses[m] = { asistentes: 0, grupos: 0 });
+
+            datosFiltrados.forEach(d => {
+                if (datosMeses[d.MES_LIMPIO] !== undefined) {
+                    datosMeses[d.MES_LIMPIO].asistentes += d.ASISTENTES;
+                    datosMeses[d.MES_LIMPIO].grupos += d.GRUPOS;
                 }
             });
+
+            // Extraer arreglos para Chart.js respetando el orden del calendario
+            const labelsMeses = mesesOrden;
+            const dataAsistentesMes = mesesOrden.map(m => datosMeses[m].asistentes);
+            
+            // Colorear diferente si hay un mes seleccionado (Cross-filtering)
+            const coloresMeses = mesesOrden.map(m => 
+                (mesSeleccionado === null || mesSeleccionado === m) ? '#3498db' : '#bdc3c7'
+            );
+
+            actualizarGrafico('asistentes', 'chartAsistentes', 'bar', labelsMeses, dataAsistentesMes, coloresMeses, 'Asistentes Totales');
+
+            // --- FILTRO CRUZADO PARA LOS PANELES INFERIORES ---
+            // Si el usuario hizo clic en un mes, los paneles de abajo solo muestran datos de ese mes
+            let datosPanelesSecundarios = datosFiltrados;
+            if (mesSeleccionado) {
+                datosPanelesSecundarios = datosFiltrados.filter(d => d.MES_LIMPIO === mesSeleccionado);
+            }
+
+            // Procesar Grupos por Mes (Panel 2)
+            let dataGruposMes = mesesOrden.map(m => datosMeses[m].grupos);
+            actualizarGrafico('grupos', 'chartGrupos', 'bar', labelsMeses, dataGruposMes, '#2ecc71', 'Grupos Totales');
+
+            // Procesar Edades (Panel 3)
+            let edadesMap = {};
+            datosPanelesSecundarios.forEach(d => {
+                edadesMap[d.EDAD] = (edadesMap[d.EDAD] || 0) + d.ASISTENTES;
+            });
+            actualizarGrafico('edad', 'chartEdad', 'bar', Object.keys(edadesMap), Object.values(edadesMap), '#9b59b6', 'Asistentes por Edad');
+
+            // Procesar Género (Panel 4)
+            let totalM = 0; let totalF = 0;
+            datosPanelesSecundarios.forEach(d => { totalM += d.M; totalF += d.F; });
+            actualizarGraficoPie('genero', 'chartGenero', ['Masculino (M)', 'Femenino (F)'], [totalM, totalF], ['#34495e', '#e74c3c']);
+        }
+
+        // Función genérica para renderizar o actualizar Barras
+        function actualizarGrafico(idGrafico, idCanvas, tipo, etiquetas, valores, colores, labelDataset) {
+            const ctx = document.getElementById(idCanvas).getContext('2d');
+            
+            if (graficos[idGrafico]) {
+                graficos[idGrafico].data.labels = etiquetas;
+                graficos[idGrafico].data.datasets[0].data = valores;
+                graficos[idGrafico].data.datasets[0].backgroundColor = colores;
+                graficos[idGrafico].update();
+            } else {
+                graficos[idGrafico] = new Chart(ctx, {
+                    type: tipo,
+                    data: {
+                        labels: etiquetas,
+                        datasets: [{ label: labelDataset, data: valores, backgroundColor: colores, borderRadius: 4 }]
+                    },
+                    options: {
+                        responsive: true,
+                        // Configuración del Cross-Filtering (Solo activo para el gráfico principal)
+                        onClick: (evt, elementos) => {
+                            if (idGrafico === 'asistentes' && elementos.length > 0) {
+                                const indice = elementos[0].index;
+                                mesSeleccionado = etiquetas[indice];
+                                procesarDatos(); // Recalcular todo el dashboard basado en este mes
+                            }
+                        }
+                    }
+                });
+            }
+        }
+
+        // Función dedicada para el gráfico de Pastel (Género)
+        function actualizarGraficoPie(idGrafico, idCanvas, etiquetas, valores, colores) {
+            const ctx = document.getElementById(idCanvas).getContext('2d');
+            if (graficos[idGrafico]) {
+                graficos[idGrafico].data.datasets[0].data = valores;
+                graficos[idGrafico].update();
+            } else {
+                graficos[idGrafico] = new Chart(ctx, {
+                    type: 'doughnut',
+                    data: {
+                        labels: etiquetas,
+                        datasets: [{ data: valores, backgroundColor: colores }]
+                    },
+                    options: { responsive: true, maintainAspectRatio: false }
+                });
+            }
+        }
+
+        function resetearFiltroMes() {
+            mesSeleccionado = null;
+            procesarDatos();
         }
     </script>
 </body>
