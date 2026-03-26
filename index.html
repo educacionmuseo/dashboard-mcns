@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard MCNS</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f4f6f8;
+            color: #333;
+            margin: 0; padding: 20px;
+            display: flex; flex-direction: column; align-items: center;
+        }
+        .contenedor {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+            width: 100%; max-width: 900px;
+        }
+        h2 { text-align: center; color: #2c3e50; }
+        canvas { margin-top: 20px; }
+    </style>
+</head>
+<body>
+
+    <div class="contenedor">
+        <h2>Asistencia Total por Mes - MCNS</h2>
+        <canvas id="graficoMuseo"></canvas>
+    </div>
+
+    <script>
+        // Enlace público de Google Sheets
+        const urlCSV = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vS7f26O3sj6abtatPWdf3wa4hdGxMI5gjOZU--SYrJ92jTxZ9Ch6LrTESm_XjWeIRFTrnKJq-c2aed9/pub?output=csv';
+
+        // Usamos PapaParse para procesar el archivo directamente desde la URL
+        Papa.parse(urlCSV, {
+            download: true,
+            header: true, // Usa la primera fila como nombres de variables
+            dynamicTyping: true, // Convierte números automáticamente
+            complete: function(resultados) {
+                const datos = resultados.data;
+                
+                // Objeto para sumar asistentes por mes
+                const asistenciaPorMes = {};
+
+                datos.forEach(fila => {
+                    const mes = fila['MES'];
+                    const asistentes = fila['NÚMERO TOTAL DE PERSONAS ASISTENTES'];
+
+                    // Verificamos que la fila tenga un mes y un número válido
+                    if (mes && typeof asistentes === 'number') {
+                        if (!asistenciaPorMes[mes]) {
+                            asistenciaPorMes[mes] = 0;
+                        }
+                        asistenciaPorMes[mes] += asistentes; // Sumamos la asistencia
+                    }
+                });
+
+                // Extraemos las variables para Chart.js
+                const etiquetasMeses = Object.keys(asistenciaPorMes);
+                const valoresAsistentes = Object.values(asistenciaPorMes);
+
+                dibujarGrafico(etiquetasMeses, valoresAsistentes);
+            },
+            error: function(error) {
+                console.error("Error al leer el CSV:", error);
+            }
+        });
+
+        // Función para renderizar la gráfica
+        function dibujarGrafico(etiquetas, valores) {
+            const ctx = document.getElementById('graficoMuseo').getContext('2d');
+            new Chart(ctx, {
+                type: 'bar', // Gráfico de barras
+                data: {
+                    labels: etiquetas,
+                    datasets: [{
+                        label: 'Número Total de Asistentes',
+                        data: valores,
+                        backgroundColor: '#3498db',
+                        borderRadius: 4
+                    }]
+                },
+                options: { 
+                    responsive: true,
+                    plugins: {
+                        legend: { display: true }
+                    }
+                }
+            });
+        }
+    </script>
+</body>
+</html>
