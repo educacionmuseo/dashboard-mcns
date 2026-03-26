@@ -44,15 +44,19 @@
         .contenedor-grafico-principal { position: relative; width: 100%; max-width: 1000px; height: 400px; }
         .contenedor-grafico-secundario { position: relative; width: 100%; height: 300px; }
         
-        /* LAYOUT TERRITORIAL CORREGIDO: Mapa Izquierda (Ancho) | Comunas Derecha (Estrecho) */
+       /* Layout Áureo Corregido: Mapa Izquierda (Ancho) | Comunas Derecha (Estrecho) */
         .layout-territorial {
             display: grid;
-            grid-template-columns: 2fr 1fr; /* 66% Mapa (Izq) - 33% Barras (Der) */
+            grid-template-columns: 2fr 1fr;
             gap: 20px;
             margin-bottom: 30px;
         }
+        /* EL TRUCO MAESTRO: Obliga al gráfico a respetar el 33% y no aplastar al mapa */
+        .layout-territorial > .panel {
+            min-width: 0;
+        }
         @media (max-width: 1000px) {
-            .layout-territorial { grid-template-columns: 1fr; } /* Se apilan en pantallas pequeñas */
+            .layout-territorial { grid-template-columns: 1fr; }
         }
 
         /* Mapa y Contenedor Scroll Ajustados (Altura fija para alinear) */
