@@ -8,26 +8,46 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.0.0"></script>
+
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
     <style>
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #eef2f5; color: #333; margin: 0; padding: 20px; }
-        .header { display: flex; justify-content: space-between; align-items: center; background: white; padding: 20px; border-radius: 10px; margin-bottom: 20px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
-        .controles select { padding: 10px; font-size: 16px; border-radius: 5px; border: 1px solid #ccc; cursor: pointer; }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #eef2f5; color: #333; margin: 0; padding: 20px;
+        }
+        .header {
+            display: flex; justify-content: space-between; align-items: center;
+            background: white; padding: 20px; border-radius: 10px; margin-bottom: 20px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+        }
+        .controles select {
+            padding: 10px; font-size: 16px; border-radius: 5px; border: 1px solid #ccc; cursor: pointer;
+        }
         
-        .dashboard-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(400px, 1fr)); gap: 20px; margin-bottom: 30px; }
-        .panel { background: white; padding: 20px; border-radius: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
-        .panel-principal { grid-column: 1 / -1; display: flex; flex-direction: column; align-items: center; }
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+            gap: 20px; margin-bottom: 30px;
+        }
+        .panel {
+            background: white; padding: 20px; border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+        }
+        .panel-principal { 
+            grid-column: 1 / -1; 
+            display: flex; flex-direction: column; align-items: center;
+        }
         
         /* Contenedores Gráficos Superiores */
         .contenedor-grafico-principal { position: relative; width: 100%; max-width: 1000px; height: 400px; }
         .contenedor-grafico-secundario { position: relative; width: 100%; height: 300px; }
         
-        /* NUEVO: Layout Territorial (Proporción Áurea) */
+        /* LAYOUT TERRITORIAL CORREGIDO: Mapa Izquierda (Ancho) | Comunas Derecha (Estrecho) */
         .layout-territorial {
             display: grid;
-            grid-template-columns: 2fr 1fr; /* 66% Mapa - 33% Barras */
+            grid-template-columns: 2fr 1fr; /* 66% Mapa (Izq) - 33% Barras (Der) */
             gap: 20px;
             margin-bottom: 30px;
         }
@@ -35,13 +55,13 @@
             .layout-territorial { grid-template-columns: 1fr; } /* Se apilan en pantallas pequeñas */
         }
 
-        /* Mapa y Contenedor Scroll Ajustados */
+        /* Mapa y Contenedor Scroll Ajustados (Altura fija para alinear) */
         #mapaMedellin { width: 100%; height: 600px; border-radius: 8px; z-index: 1; border: 1px solid #ddd; }
         
         .contenedor-scroll-externo {
             width: 100%;
             height: 600px; /* Misma altura que el mapa */
-            overflow-y: auto;
+            overflow-y: auto; /* Activa el scroll vertical */
             overflow-x: hidden;
             border: 1px solid #eee;
             border-radius: 8px;
@@ -51,13 +71,14 @@
         .contenedor-scroll-interno {
             position: relative;
             width: 100%;
-            /* La altura de este div se inyectará con JavaScript */
+            /* La altura de este div se inyectará dinámicamente con JavaScript */
         }
 
         h2.seccion-titulo { text-align: center; color: #2c3e50; margin: 40px 0 20px 0; border-top: 2px solid #ddd; padding-top: 20px; }
         h3 { text-align: center; color: #2c3e50; font-size: 1.1em; margin-top: 0; margin-bottom: 15px; text-transform: uppercase; }
         .instruccion { text-align: center; font-size: 0.85em; color: #7f8c8d; margin-bottom: 15px; }
         
+        /* Leyenda de colores compartida */
         .leyenda-colores { display: flex; justify-content: center; gap: 20px; margin-bottom: 20px; font-size: 0.9em; flex-wrap: wrap; }
         .dot { height: 12px; width: 12px; border-radius: 50%; display: inline-block; margin-right: 5px; vertical-align: middle;}
     </style>
@@ -106,6 +127,7 @@
     <div class="layout-territorial">
         <div class="panel" style="padding: 15px;">
             <h3>MAPA DE PROCEDENCIA INSTITUCIONAL</h3>
+            <p class="instruccion" style="font-size: 0.75em; margin-bottom: 5px;">📍 El tamaño de la burbuja refleja la cantidad de asistentes. Haz clic para ver detalles.</p>
             <div id="mapaMedellin"></div>
         </div>
         
@@ -128,23 +150,24 @@
 
         let datosGlobales = []; let aniosDetectados = new Set(); 
         let mesSeleccionado = null; 
-        let comunaSeleccionada = null; // NUEVA VARIABLE DE ESTADO
+        let comunaSeleccionada = null; // Variable de estado para el cross-filtering territorial
         
         let graficos = { asistentes: null, grupos: null, edad: null, genero: null, comuna: null };
         const mesesOrden = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
         const paletaAzules = ['#08306b', '#2171b5', '#6baed6', '#bdd7e7', '#eff3ff'];
         let mapaInstancia = null; let capaMarcadores = null;
 
-        function obtenerColorTerritorio(nombreComuna, esSeleccionada = false) {
+        // Lógica de colores territorial (ITM Verde, Medellín Azul, Otros Gris)
+        function obtenerColorTerritorio(nombreComuna) {
             let texto = String(nombreComuna).toUpperCase().trim();
             let colorBase = '#7f8c8d'; // Gris por defecto
             
             if (texto.startsWith('ITM')) colorBase = '#27ae60';
             else if (texto.startsWith('COMUNA') || texto.startsWith('CORREGIMIENTO')) colorBase = '#2980b9';
             
-            // Si hay una comuna seleccionada y no es esta, la atenuamos (opacidad visual)
+            // Si hay una comuna seleccionada y no es esta, la atenuamos visualmente
             if (comunaSeleccionada !== null && comunaSeleccionada !== nombreComuna) {
-                return '#e0e0e0'; // Gris muy claro para comunas no seleccionadas
+                return '#e0e0e0'; // Gris muy claro
             }
             return colorBase;
         }
@@ -196,7 +219,7 @@
             const anioElegido = document.getElementById('selectorAnio').value;
             let datosFiltradosPorAnio = (anioElegido === "TODOS") ? datosGlobales : datosGlobales.filter(d => d.ANIO === anioElegido);
 
-            // 1. Panel Principal Superior
+            // 1. Panel Principal Superior (Asistencia por Mes)
             let datasetsPrincipal = [];
             if (anioElegido === "TODOS") {
                 let anios = Array.from(aniosDetectados).sort();
@@ -224,7 +247,7 @@
             let totalM = 0; let totalF = 0; datosSecundarios.forEach(d => { totalM += d.M; totalF += d.F; });
             actualizarGraficoPie('genero', 'chartGenero', ['Masculino (M)', 'Femenino (F)'], [totalM, totalF], ['#34495e', '#e74c3c']);
 
-            // --- ACTUALIZACIÓN BARRAS DE COMUNAS (Con Scroll Dinámico y Clic) ---
+            // --- ACTUALIZACIÓN BARRAS DE COMUNAS (Con Scroll y Clic) ---
             let comunaMap = {};
             datosSecundarios.forEach(d => {
                 if (d.COMUNA !== 'Sin Registro' && d.COMUNA !== '') { comunaMap[d.COMUNA] = (comunaMap[d.COMUNA] || 0) + d.ASISTENTES; }
@@ -235,18 +258,19 @@
             
             actualizarGraficoComunas('comuna', 'chartComuna', comunasOrdenadas, valoresComunas, coloresComunas, 'Asistentes');
 
-            // --- ACTUALIZACIÓN DEL MAPA ---
+            // --- ACTUALIZACIÓN DEL MAPA (Georreferenciación) ---
             actualizarMapa(datosSecundarios);
         }
 
-        // SEPARACIÓN LÓGICA: Actualizar solo el mapa basado en la comuna clickeada
+        // Lógica de dibujo del mapa basada en la comuna seleccionada
         function actualizarMapa(datosMapear) {
             capaMarcadores.clearLayers(); 
             datosMapear.forEach(d => {
-                // FILTRO CRUZADO: Si hay una comuna seleccionada, ignoramos las demás
+                // Filtro cruzado territorial: Si hay una comuna seleccionada, ignoramos las demás burbujas
                 if (comunaSeleccionada !== null && d.COMUNA !== comunaSeleccionada) return;
 
                 if (!isNaN(d.LAT) && !isNaN(d.LON)) {
+                    // Tamaño de la burbuja: raíz cuadrada para normalizar valores gigantes
                     let radioBurbuja = Math.max(4, Math.sqrt(d.ASISTENTES) * 1.5);
                     let colorDinamico = obtenerColorTerritorio(d.COMUNA); 
                     
@@ -254,7 +278,8 @@
                         radius: radioBurbuja, color: colorDinamico, fillColor: colorDinamico, fillOpacity: 0.7, weight: 1
                     });
 
-                    let popupHTML = `<div style="text-align:center;"><strong>${d.INSTITUCION}</strong><br><span style="color:#7f8c8d;">${d.COMUNA}</span><hr style="margin:5px 0;"><strong style="color:${colorDinamico}; font-size:16px;">${d.ASISTENTES} Asistentes</strong></div>`;
+                    // Tarjeta de información (Popup)
+                    let popupHTML = `<div style="text-align:center; font-family: sans-serif;"><strong style="color: #2c3e50;">${d.INSTITUCION}</strong><br><span style="color:#7f8c8d;">${d.COMUNA}</span><hr style="margin:5px 0;"><strong style="color:${colorDinamico}; font-size:16px;">${d.ASISTENTES} Asistentes</strong></div>`;
                     marcador.bindPopup(popupHTML); capaMarcadores.addLayer(marcador);
                 }
             });
@@ -276,8 +301,8 @@
             const wrapper = document.getElementById('wrapperComuna');
             const ctx = canvas.getContext('2d');
             
-            // LÓGICA DEL SCROLL: Inyectamos la altura matemática al wrapper interno
-            // 35 píxeles por cada barra asegura que nunca se atiborren
+            // LÓGICA DEL SCROLL: Inyectamos dinámicamente la altura matemática al wrapper interno
+            // 35 píxeles de alto por cada barra asegura que nunca se atiborren.
             const altoNecesario = Math.max(500, etiquetas.length * 35);
             wrapper.style.height = altoNecesario + 'px';
 
@@ -291,17 +316,18 @@
                     type: 'bar',
                     data: { labels: etiquetas, datasets: [{ label: labelDataset, data: valores, backgroundColor: arrayColores, borderRadius: 4 }] },
                     options: {
-                        indexAxis: 'y', responsive: true, maintainAspectRatio: false,
+                        indexAxis: 'y', // Gira el gráfico a horizontal
+                        responsive: true, maintainAspectRatio: false,
                         plugins: { datalabels: { align: 'right', anchor: 'end' }, legend: { display: false } },
                         scales: { x: { suggestedMax: Math.max(...valores) * 1.1 } },
-                        // Evento de clic para filtrar el mapa
+                        // Evento de clic en la barra para filtrar el mapa (Cross-filtering)
                         onClick: (evt, elementos) => {
                             if (elementos.length > 0) {
                                 const clickeada = etiquetas[elementos[0].index];
                                 // Comportamiento de Interruptor (Toggle)
-                                if (comunaSeleccionada === clickeada) comunaSeleccionada = null;
-                                else comunaSeleccionada = clickeada;
-                                procesarDatos(); // Recalcula para atenuar las barras no seleccionadas y actualizar el mapa
+                                if (comunaSeleccionada === clickeada) comunaSeleccionada = null; // Quita filtro
+                                else comunaSeleccionada = clickeada; // Aplica filtro
+                                procesarDatos(); // Recalcula para atenuar las barras y filtrar el mapa
                             }
                         }
                     }
