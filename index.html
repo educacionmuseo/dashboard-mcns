@@ -219,6 +219,7 @@
                 });
             }
 
+            // 1. Panel Principal Superior (El gran total por meses)
             let datasetsPrincipal = [];
             if (anioElegido === "TODOS") {
                 let anios = Array.from(aniosDetectados).sort();
@@ -231,42 +232,46 @@
                 let coloresMeses = mesesOrden.map(m => (mesSeleccionado === null || mesSeleccionado === m) ? '#3498db' : '#bdc3c7');
                 datasetsPrincipal.push({ label: 'Asistentes ' + anioElegido, data: datosMes, backgroundColor: coloresMeses, borderRadius: 4 });
             }
-            actualizarGraficoConfig('asistentes', 'chartAsistentes', 'bar', mesesOrden, datasetsPrincipal, true);
+            // El último "true" mantiene la leyenda encendida en el panel principal
+            actualizarGraficoConfig('asistentes', 'chartAsistentes', 'bar', mesesOrden, datasetsPrincipal, true, true);
 
+            // 2. Base de datos afectada por el clic en el panel de Meses
             let datosSecundarios = datosFiltradosBase;
             if (mesSeleccionado) datosSecundarios = datosFiltradosBase.filter(d => d.MES_LIMPIO === mesSeleccionado);
 
-            // Paneles Secundarios
-            let datosGruposMes = mesesOrden.map(m => datosSecundarios.filter(d => d.MES_LIMPIO === m).reduce((sum, d) => sum + d.GRUPOS, 0));
+            // --- LA MAGIA: BIFURCAMOS LOS DATOS PARA LOS 4 PANELES CENTRALES ---
+            // Si el usuario hace clic en una comuna, esta variable aísla esos datos específicos
+            let datosParaPaneles = datosSecundarios;
+            if (comunaSeleccionada) {
+                datosParaPaneles = datosSecundarios.filter(d => d.COMUNA === comunaSeleccionada);
+            }
+
+            // 3. Paneles Secundarios (AHORA USAN "datosParaPaneles" Y REACCIONAN A LA COMUNA)
+            let datosGruposMes = mesesOrden.map(m => datosParaPaneles.filter(d => d.MES_LIMPIO === m).reduce((sum, d) => sum + d.GRUPOS, 0));
             actualizarGraficoBasico('grupos', 'chartGrupos', 'bar', mesesOrden, datosGruposMes, '#2ecc71', 'Grupos');
 
-            let edadesMap = {}; datosSecundarios.forEach(d => { if (d.EDAD !== 'Sin clasificar') edadesMap[d.EDAD] = (edadesMap[d.EDAD] || 0) + d.ASISTENTES; });
+            let edadesMap = {}; datosParaPaneles.forEach(d => { if (d.EDAD !== 'Sin clasificar') edadesMap[d.EDAD] = (edadesMap[d.EDAD] || 0) + d.ASISTENTES; });
             actualizarGraficoBasico('edad', 'chartEdad', 'bar', Object.keys(edadesMap), Object.values(edadesMap), '#9b59b6', 'Asistentes');
 
-            let totalM = 0; let totalF = 0; datosSecundarios.forEach(d => { totalM += d.M; totalF += d.F; });
+            let totalM = 0; let totalF = 0; datosParaPaneles.forEach(d => { totalM += d.M; totalF += d.F; });
             actualizarGraficoPie('genero', 'chartGenero', ['Masculino (M)', 'Femenino (F)'], [totalM, totalF], ['#34495e', '#e74c3c']);
 
-            // NUEVO PANEL: DESCRIPTOR DE GRUPO (Ahora con Scroll Dinámico)
             let descriptorMap = {};
-            datosSecundarios.forEach(d => {
+            datosParaPaneles.forEach(d => {
                 if (d.DESCRIPTOR !== 'Sin Registro' && d.DESCRIPTOR !== '') { descriptorMap[d.DESCRIPTOR] = (descriptorMap[d.DESCRIPTOR] || 0) + d.ASISTENTES; }
             });
             let descOrdenados = Object.keys(descriptorMap).sort((a, b) => descriptorMap[b] - descriptorMap[a]);
             let valoresDesc = descOrdenados.map(c => descriptorMap[c]);
-            
-            // Usamos la nueva función universal de scroll para el descriptor
-            actualizarGraficoHorizontalScroll('descriptor', 'chartDescriptor', 'wrapperDescriptor', descOrdenados, valoresDesc, '#f39c12', 'Asistentes');
+            actualizarGraficoHorizontalScroll('descriptor', 'chartDescriptor', 'wrapperDescriptor', descOrdenados, valoresDesc, '#f39c12', 'Asistentes', false);
 
-            // Paneles Territoriales
+            // 4. Paneles Territoriales (USAN "datosSecundarios" PARA NO BORRAR LAS DEMÁS BARRAS DE LA PANTALLA)
             let comunaMap = {};
             datosSecundarios.forEach(d => { if (d.COMUNA !== 'Sin Registro' && d.COMUNA !== '') { comunaMap[d.COMUNA] = (comunaMap[d.COMUNA] || 0) + d.ASISTENTES; } });
             let comunasOrdenadas = Object.keys(comunaMap).sort((a, b) => comunaMap[b] - comunaMap[a]);
             let valoresComunas = comunasOrdenadas.map(c => comunaMap[c]);
             let coloresComunas = comunasOrdenadas.map(c => obtenerColorTerritorio(c));
             
-            // Usamos la misma función universal para Comunas, activando el filtro click
             actualizarGraficoHorizontalScroll('comuna', 'chartComuna', 'wrapperComuna', comunasOrdenadas, valoresComunas, coloresComunas, 'Asistentes', true);
-            
             actualizarMapaConOverlapping(datosSecundarios);
         }
 
