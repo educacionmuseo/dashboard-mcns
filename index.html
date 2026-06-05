@@ -294,16 +294,48 @@
             });
         }
 
-        function actualizarGraficoConfig(idGrafico, idCanvas, tipo, etiquetas, configDatasets, clickeable = false) {
+        function actualizarGraficoConfig(idGrafico, idCanvas, tipo, etiquetas, configDatasets, clickeable = false, mostrarLeyenda = true) {
             const ctx = document.getElementById(idCanvas).getContext('2d');
-            let configOpciones = { responsive: true, maintainAspectRatio: false, layout: { padding: { top: 20, right: 20 } } };
-            if (clickeable) { configOpciones.onClick = (evt, elementos) => { if (elementos.length > 0) { mesSeleccionado = etiquetas[elementos[0].index]; procesarDatos(); } } }
-            if (graficos[idGrafico]) { graficos[idGrafico].data.labels = etiquetas; graficos[idGrafico].data.datasets = configDatasets; graficos[idGrafico].options = configOpciones; graficos[idGrafico].update(); } 
-            else { graficos[idGrafico] = new Chart(ctx, { type: tipo, data: { labels: etiquetas, datasets: configDatasets }, options: configOpciones }); }
+            
+            // 1. Aumentamos el espacio interior (padding) para proteger el techo
+            let configOpciones = { 
+                responsive: true, 
+                maintainAspectRatio: false, 
+                layout: { padding: { top: 30, right: 20 } },
+                plugins: {
+                    legend: { display: mostrarLeyenda } // 2. Ocultamos leyendas redundantes
+                }
+            };
+
+            // 3. Ecuación para calcular la barra más alta y agregar un 15% de espacio extra arriba
+            if (tipo === 'bar') {
+                let maximoValor = 0;
+                configDatasets.forEach(ds => {
+                    let maxDs = Math.max(...ds.data);
+                    if (maxDs > maximoValor) maximoValor = maxDs;
+                });
+                configOpciones.scales = { y: { suggestedMax: maximoValor * 1.15 } };
+            }
+
+            if (clickeable) { 
+                configOpciones.onClick = (evt, elementos) => { 
+                    if (elementos.length > 0) { mesSeleccionado = etiquetas[elementos[0].index]; procesarDatos(); } 
+                } 
+            }
+            
+            if (graficos[idGrafico]) { 
+                graficos[idGrafico].data.labels = etiquetas; 
+                graficos[idGrafico].data.datasets = configDatasets; 
+                graficos[idGrafico].options = configOpciones; 
+                graficos[idGrafico].update(); 
+            } else { 
+                graficos[idGrafico] = new Chart(ctx, { type: tipo, data: { labels: etiquetas, datasets: configDatasets }, options: configOpciones }); 
+            }
         }
 
         function actualizarGraficoBasico(idGrafico, idCanvas, tipo, etiquetas, valores, colores, labelDataset) {
-            actualizarGraficoConfig(idGrafico, idCanvas, tipo, etiquetas, [{ label: labelDataset, data: valores, backgroundColor: colores, borderRadius: 4 }]);
+            // El último "false" apaga específicamente la leyenda para estos gráficos sencillos
+            actualizarGraficoConfig(idGrafico, idCanvas, tipo, etiquetas, [{ label: labelDataset, data: valores, backgroundColor: colores, borderRadius: 4 }], false, false);
         }
 
         // NUEVA FUNCIÓN UNIVERSAL DE SCROLL HORIZONTAL
