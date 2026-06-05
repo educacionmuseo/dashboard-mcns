@@ -347,8 +347,28 @@
         function actualizarGraficoPie(idGrafico, idCanvas, etiquetas, valores, colores) {
             const ctx = document.getElementById(idCanvas).getContext('2d');
             if (valores[0] === 0 && valores[1] === 0) valores = [];
-            if (graficos[idGrafico]) { graficos[idGrafico].data.datasets[0].data = valores; graficos[idGrafico].update(); } 
-            else { graficos[idGrafico] = new Chart(ctx, { type: 'doughnut', data: { labels: etiquetas, datasets: [{ data: valores, backgroundColor: colores }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { datalabels: { color: '#fff', font: { size: 14 } } } } }); }
+            
+            if (graficos[idGrafico]) { 
+                graficos[idGrafico].data.datasets[0].data = valores; 
+                graficos[idGrafico].update(); 
+            } else { 
+                graficos[idGrafico] = new Chart(ctx, { 
+                    type: 'doughnut', 
+                    data: { labels: etiquetas, datasets: [{ data: valores, backgroundColor: colores }] }, 
+                    options: { 
+                        responsive: true, 
+                        maintainAspectRatio: false, 
+                        plugins: { 
+                            datalabels: { 
+                                color: '#fff', 
+                                font: { size: 14, weight: 'bold' },
+                                anchor: 'center', // Obliga al número a estar dentro del segmento
+                                align: 'center'   // Evita que se desplace hacia afuera
+                            } 
+                        } 
+                    } 
+                }); 
+            }
         }
 
         function resetearFiltros() { 
