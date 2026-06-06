@@ -325,7 +325,7 @@
 
             let totalM = 0; let totalF = 0; f1Paneles.forEach(d => { totalM += d.M; totalF += d.F; });
             // Actualizado a Azul y Rojo Google
-            actualizarGraficoPie('genero', 'chartGenero', ['Masculino', 'Femenino'], [totalM, totalF], ['#2980b9', '#e67c73']);
+            actualizarGraficoPie('genero', 'chartGenero', ['Masculino', 'Femenino'], [totalM, totalF], ['#2980b9', '#e0e0e0']);
 
             let descMap = {}; f1Paneles.forEach(d => { if (d.DESCRIPTOR !== 'Sin Registro' && d.DESCRIPTOR !== '') descMap[d.DESCRIPTOR] = (descMap[d.DESCRIPTOR] || 0) + d.ASISTENTES; });
             let labelsDesc = Object.keys(descMap).sort((a,b) => descMap[b] - descMap[a]);
