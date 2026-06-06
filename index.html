@@ -144,7 +144,6 @@
         Chart.register(ChartDataLabels);
         Chart.defaults.set('plugins.datalabels', { color: '#2c3e50', anchor: 'end', align: 'top', font: { weight: 'bold', size: 10 }, formatter: (value) => { return value > 0 ? value : ''; } });
 
-        // LAS DOS FUENTES ENLAZADAS DESDE GOOGLE SHEETS
         const urlComentadas = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vS7f26O3sj6abtatPWdf3wa4hdGxMI5gjOZU--SYrJ92jTxZ9Ch6LrTESm_XjWeIRFTrnKJq-c2aed9/pub?output=csv';
         const urlLibres = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSx-9TxdT25K0DSLKTO4YMhWsH0aXkRvMn1Smzj42pfjwEmYgdkhvJyrDQKkxAI8Q/pub?output=csv';
 
@@ -165,7 +164,6 @@
             return '#7f8c8d'; 
         }
 
-        // Función promesa para descargar los CSV de forma asíncrona
         function descargarCSV(url) {
             return new Promise((resolve, reject) => {
                 Papa.parse(url, {
@@ -176,10 +174,8 @@
             });
         }
 
-        // CONTROLADOR MAESTRO PARALELO
         Promise.all([descargarCSV(urlComentadas), descargarCSV(urlLibres)]).then(([csvComentadas, csvLibres]) => {
             
-            // 1. Procesar Fuente 1: Comentadas
             datosComentadas = csvComentadas.map(fila => {
                 let mesLimpio = "Desconocido"; let anioStr = "Desconocido";
                 if (fila['MES']) mesLimpio = String(fila['MES']).toLowerCase().split('-')[0].trim();
@@ -206,19 +202,19 @@
                 };
             }).filter(d => d.ASISTENTES > 0 || d.GRUPOS > 0);
 
-            // 2. Procesar Fuente 2: Libres
             datosLibres = csvLibres.map(fila => {
                 let mesLimpio = "Desconocido"; let anioStr = "Desconocido";
                 if (fila['MES']) mesLimpio = String(fila['MES']).toLowerCase().split('-')[0].trim();
                 if (fila['FECHA']) { let match = String(fila['FECHA']).match(/\d{4}/); if (match) { anioStr = match[0]; aniosDetectados.add(anioStr); } }
 
-                // Sumar dinámicamente semestres limpiando espacios
                 let semestres = {};
                 for(let i=1; i<=10; i++) { semestres[i+'S'] = 0; }
                 
                 let docentes = 0; let empleados = 0; let contratistas = 0; let ninos = 0;
                 let egresadoITM = 0; let egresadoLaSalle = 0; let estudiantes = 0;
-                let comunidad = 0; let externos = 0; let publicoITM = 0;
+                
+                // Nuevas variables corregidas:
+                let comunidadITM = 0; let externos = 0; 
 
                 for (let k in fila) {
                     let keyNorm = k.trim();
@@ -227,13 +223,15 @@
                     if (keyNorm === 'Empleados') empleados = parseInt(fila[k]) || 0;
                     if (keyNorm === 'Contratistas') contratistas = parseInt(fila[k]) || 0;
                     if (keyNorm.startsWith('Niñ')) ninos = parseInt(fila[k]) || 0;
-                    if (keyNorm === 'Egresado' || keyNorm === 'Egresado ITM') egresadoITM = parseInt(fila[k]) || 0;
-                    if (keyNorm === 'EgresadoLa Salle') egresadoLaSalle = parseInt(fila[k]) || 0;
+                    
+                    // Ajuste de los títulos nuevos reportados
+                    if (keyNorm === 'Egresado ITM' || keyNorm === 'Egresado') egresadoITM = parseInt(fila[k]) || 0;
+                    if (keyNorm === 'EgresadoLa Salle' || keyNorm === 'Egresado La Salle') egresadoLaSalle = parseInt(fila[k]) || 0;
                     if (keyNorm === 'Estudiantes') estudiantes = parseInt(fila[k]) || 0;
-                    if (keyNorm === 'COMUNIDAD') comunidad = parseInt(fila[k]) || 0;
+                    
+                    // Las variables de procedencia corregidas
+                    if (keyNorm === 'COMUNIDAD ITM') comunidadITM = parseInt(fila[k]) || 0;
                     if (keyNorm === 'EXTERNOS') externos = parseInt(fila[k]) || 0;
-                    // Manejo del campo ITM duplicado
-                    if (keyNorm === 'ITM') publicoITM = parseInt(fila[k]) || 0; 
                 }
 
                 return {
@@ -241,7 +239,7 @@
                     VISITAS_LIBRES: parseInt(fila['CANTIDAD DE VISITAS']) || 0,
                     SEMUESTRES: semestres,
                     VINCULACION: { docentes, empleados, contratistas, ninos, egresadoITM, egresadoLaSalle, estudiantes },
-                    PROCEDENCIA: { comunidad, externos, publicoITM }
+                    PROCEDENCIA: { comunidadITM, externos }
                 };
             }).filter(d => d.VISITAS_LIBRES > 0);
 
@@ -291,7 +289,6 @@
         }
 
         function procesarDatos() {
-            // --- 1. PROCESAR GRÁFICO MAESTRO INTER-FUENTE ---
             let f1Mes = obtenerDatosFiltrados('comentadas', 'mes');
             let f2Mes = obtenerDatosFiltrados('libres', 'mes');
 
@@ -307,17 +304,15 @@
             ];
             actualizarGraficoConfig('asistentes', 'chartAsistentes', 'bar', mesesOrden, datasetsMaestros, true, manejarClicFiltro('mes'));
 
-            // AISLAR BASES AFECTADAS POR SELECCIONES INTERACTIVAS
             let f1Secundario = obtenerDatosFiltrados('comentadas', 'ninguno');
             let f2Secundario = obtenerDatosFiltrados('libres', 'ninguno');
 
-            // Si hay filtro de comuna, edad o descriptor, afecta los paneles centralizados de comentadas
             let f1Paneles = f1Secundario;
             if (filtrosGlobales.comuna) f1Paneles = f1Paneles.filter(d => d.COMUNA === filtrosGlobales.comuna);
             if (filtrosGlobales.edad) f1Paneles = f1Paneles.filter(d => d.EDAD === filtrosGlobales.edad);
             if (filtrosGlobales.descriptor) f1Paneles = f1Paneles.filter(d => d.DESCRIPTOR === filtrosGlobales.descriptor);
 
-            // --- 2. EVALUAR MÓDULO 1: COMENTADAS ---
+            // 2. MÓDULO 1: COMENTADAS
             let gruposMes = mesesOrden.map(m => f1Paneles.filter(d => d.MES_LIMPIO === m).reduce((s, d) => s + d.GRUPOS, 0));
             actualizarGraficoBasico('grupos', 'chartGrupos', 'bar', mesesOrden, gruposMes, '#2ecc71', 'Grupos', null);
 
@@ -341,13 +336,11 @@
             actualizarGraficoHorizontalScroll('comuna', 'chartComuna', 'wrapperComuna', labelsCom, labelsCom.map(e => comMap[e]), coloresCom, 'Asistentes', manejarClicFiltro('comuna'));
             actualizarMapaGeorreferenciado(f1Secundario);
 
-            // --- 3. EVALUAR MÓDULO 2: RECORRIDOS LIBRES ---
-            // Gráfica de Semestres (Academic Evolution)
+            // 3. MÓDULO 2: RECORRIDOS LIBRES
             let semTotales = {}; for(let i=1; i<=10; i++) { semTotales[i+'S'] = 0; }
             f2Secundario.forEach(d => { for(let key in d.SEMUESTRES) { semTotales[key] += d.SEMUESTRES[key]; } });
             actualizarGraficoConfig('semestres', 'chartSemestres', 'line', Object.keys(semTotales), [{ label: 'Estudiantes', data: Object.values(semTotales), borderColor: '#16a085', tension: 0.2, fill: false }], false, null);
 
-            // Gráfica de Vinculación
             let vincTotales = { 'Estudiantes': 0, 'Docentes': 0, 'Empleados': 0, 'Contratistas': 0, 'Niñ@s': 0, 'Egresados': 0 };
             f2Secundario.forEach(d => {
                 vincTotales['Estudiantes'] += d.VINCULACION.estudiantes;
@@ -359,17 +352,16 @@
             });
             actualizarGraficoConfig('vinculacion', 'chartVinculacion', 'bar', Object.keys(vincTotales), [{ label: 'Cantidad', data: Object.values(vincTotales), backgroundColor: '#d35400', borderRadius: 4 }], false, null);
 
-            // Gráfica de Procedencia
-            let proTotales = { 'Comunidad': 0, 'Externos': 0, 'ITM (Libre)': 0 };
+            // Gráfica de Procedencia (AHORA CORREGIDA PARA LAS NUEVAS COLUMNAS)
+            let proTotales = { 'Comunidad ITM': 0, 'Externos': 0 };
             f2Secundario.forEach(d => {
-                proTotales['Comunidad'] += d.PROCEDENCIA.comunidad;
+                proTotales['Comunidad ITM'] += d.PROCEDENCIA.comunidadITM;
                 proTotales['Externos'] += d.PROCEDENCIA.externos;
-                proTotales['ITM (Libre)'] += d.PROCEDENCIA.publicoITM;
             });
-            actualizarGraficoPie('procedencia', 'chartProcedencia', Object.keys(proTotales), Object.values(proTotales), ['#2c3e50', '#bdc3c7', '#27ae60']);
+            // Verde institucional para ITM, Gris para Externos
+            actualizarGraficoPie('procedencia', 'chartProcedencia', Object.keys(proTotales), Object.values(proTotales), ['#27ae60', '#bdc3c7']);
         }
 
-        // --- MAPA ANTI-OVERLAPPING ---
         function actualizarMapaGeorreferenciado(datosMapear) {
             capaMarcadores.clearLayers(); let agrupacion = {};
             datosMapear.forEach(d => {
@@ -389,7 +381,6 @@
             });
         }
 
-        // --- CONFIGURADORES GRÁFICOS INTERNOS ---
         function actualizarGraficoConfig(idGrafico, idCanvas, tipo, etiquetas, configDatasets, mostrarLeyenda, funcionClic) {
             const ctx = document.getElementById(idCanvas).getContext('2d');
             let opciones = { responsive: true, maintainAspectRatio: false, layout: { padding: { top: 30, right: 20 } }, plugins: { legend: { display: mostrarLeyenda } } };
