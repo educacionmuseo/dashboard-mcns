@@ -296,7 +296,7 @@
             let asistenciasLibres = mesesOrden.map(m => f2Mes.filter(d => d.MES_LIMPIO === m).reduce((s, d) => s + d.VISITAS_LIBRES, 0));
 
             let coloresC = mesesOrden.map(m => (filtrosGlobales.mes && filtrosGlobales.mes !== m) ? '#e0e0e0' : '#3498db');
-            let coloresL = mesesOrden.map(m => (filtrosGlobales.mes && filtrosGlobales.mes !== m) ? '#e0e0e0' : '#f1c40f');
+            let coloresL = mesesOrden.map(m => (filtrosGlobales.mes && filtrosGlobales.mes !== m) ? '#e0e0e0' : '#e67c73');
 
             let datasetsMaestros = [
                 { label: 'Visitas Comentadas', data: asistenciasComentadas, backgroundColor: coloresC, borderRadius: 4 },
