@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard MCNS | Analítica Multidimensional</title>
+    <title>Dashboard MCNS | Analítica Multi-Fuente</title>
     
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
@@ -49,7 +49,7 @@
 <body>
 
     <div class="header">
-        <h2>📊 MCNS | Estadísticas de Visitantes</h2>
+        <h2>📊 MCNS | Panel Integrado de Analítica</h2>
         <div class="controles">
             <div>
                 <label for="selectorAnio"><strong>Año: </strong></label>
@@ -58,7 +58,7 @@
                 </select>
             </div>
             <div>
-                <label for="selectorTipo"><strong>Sector: </strong></label>
+                <label for="selectorTipo"><strong>Sector (Comentadas): </strong></label>
                 <select id="selectorTipo" onchange="procesarDatos()">
                     <option value="TODOS">Todos los sectores</option>
                     <option value="PRIVADA">Privada</option>
@@ -71,28 +71,26 @@
     </div>
 
     <div class="panel panel-principal" style="margin-bottom: 20px;">
-        <h3>NÚMERO TOTAL DE PERSONAS ASISTENTES (Por Mes)</h3>
-        <p class="instruccion">👆 Clic en las barras para interactuar y cruzar datos</p>
+        <h3>COMPARATIVO DE ASISTENCIA: VISITAS COMENTADAS VS RECORRIDOS LIBRES</h3>
+        <p class="instruccion">👆 Clic en las barras de los meses para filtrar de manera cruzada toda la interfaz</p>
         <div class="contenedor-grafico-principal"><canvas id="chartAsistentes"></canvas></div>
     </div>
 
+    <h2 class="seccion-titulo">🗣️ Módulo 1: Visitas Comentadas</h2>
     <div class="dashboard-grid">
         <div class="panel">
             <h3>GRUPOS POR INSTITUCIÓN</h3>
             <div class="contenedor-grafico-secundario"><canvas id="chartGrupos"></canvas></div>
         </div>
-        
         <div class="panel">
             <h3>ASISTENTES POR EDAD</h3>
             <p class="instruccion" style="font-size: 0.75em; margin-bottom: 5px;">👆 Clic para filtrar</p>
             <div class="contenedor-grafico-secundario"><canvas id="chartEdad"></canvas></div>
         </div>
-        
         <div class="panel">
             <h3>GÉNERO (M vs F)</h3>
             <div class="contenedor-grafico-secundario"><canvas id="chartGenero"></canvas></div>
         </div>
-
         <div class="panel">
             <h3>DESCRIPTOR DE GRUPO</h3>
             <p class="instruccion" style="font-size: 0.75em; margin-bottom: 5px;">👆 Clic para filtrar</p>
@@ -104,21 +102,17 @@
         </div>
     </div>
 
-    <h2 class="seccion-titulo">🌍 Análisis Territorial y Demográfico</h2>
-    
+    <h2 class="seccion-titulo">🌍 Análisis Territorial (Visitas Comentadas)</h2>
     <div class="leyenda-colores">
         <div><span class="dot" style="background-color: #27ae60;"></span> ITM</div>
         <div><span class="dot" style="background-color: #2980b9;"></span> Medellín (Comunas/Corregimientos)</div>
         <div><span class="dot" style="background-color: #7f8c8d;"></span> Otros Municipios</div>
     </div>
-
     <div class="layout-territorial">
         <div class="panel" style="padding: 15px;">
             <h3>MAPA DE PROCEDENCIA INSTITUCIONAL</h3>
-            <p class="instruccion" style="font-size: 0.75em; margin-bottom: 5px;">📍 Burbujas consolidadas por institución y ubicación.</p>
             <div id="mapaMedellin"></div>
         </div>
-        
         <div class="panel" style="padding: 15px;">
             <h3>ZONA / COMUNA</h3>
             <p class="instruccion" style="font-size: 0.75em; margin-bottom: 5px;">👆 Clic en la barra para filtrar el mapa</p>
@@ -130,30 +124,40 @@
         </div>
     </div>
 
+    <h2 class="seccion-titulo">🚶 Módulo 2: Perfil de Visitantes en Recorridos Libres</h2>
+    <div class="dashboard-grid">
+        <div class="panel" style="grid-column: span 2;">
+            <h3>EVOLUCIÓN ACADÉMICA (Estudiantes por Semestre)</h3>
+            <div class="contenedor-grafico-secundario"><canvas id="chartSemestres"></canvas></div>
+        </div>
+        <div class="panel">
+            <h3>VINCULACIÓN INSTITUCIONAL</h3>
+            <div class="contenedor-grafico-secundario"><canvas id="chartVinculacion"></canvas></div>
+        </div>
+        <div class="panel">
+            <h3>PROCEDENCIA GLOBAL</h3>
+            <div class="contenedor-grafico-secundario"><canvas id="chartProcedencia"></canvas></div>
+        </div>
+    </div>
+
     <script>
         Chart.register(ChartDataLabels);
         Chart.defaults.set('plugins.datalabels', { color: '#2c3e50', anchor: 'end', align: 'top', font: { weight: 'bold', size: 10 }, formatter: (value) => { return value > 0 ? value : ''; } });
 
-        const urlCSV = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vS7f26O3sj6abtatPWdf3wa4hdGxMI5gjOZU--SYrJ92jTxZ9Ch6LrTESm_XjWeIRFTrnKJq-c2aed9/pub?output=csv';
+        // LAS DOS FUENTES ENLAZADAS DESDE GOOGLE SHEETS
+        const urlComentadas = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vS7f26O3sj6abtatPWdf3wa4hdGxMI5gjOZU--SYrJ92jTxZ9Ch6LrTESm_XjWeIRFTrnKJq-c2aed9/pub?output=csv';
+        const urlLibres = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSx-9TxdT25K0DSLKTO4YMhWsH0aXkRvMn1Smzj42pfjwEmYgdkhvJyrDQKkxAI8Q/pub?output=csv';
 
-        let datosGlobales = []; 
+        let datosComentadas = [];
+        let datosLibres = [];
         let aniosDetectados = new Set(); 
         
-        // --- ESTADOS GLOBALES DE FILTRACIÓN CRUZADA ---
-        let filtrosGlobales = {
-            mes: null,
-            comuna: null,
-            edad: null,
-            descriptor: null
-        };
+        let filtrosGlobales = { mes: null, comuna: null, edad: null, descriptor: null };
+        let graficos = {};
         
-        let graficos = { asistentes: null, grupos: null, edad: null, genero: null, comuna: null, descriptor: null };
         const mesesOrden = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
-        const paletaAzules = ['#08306b', '#2171b5', '#6baed6', '#bdd7e7', '#eff3ff'];
-        let mapaInstancia = null; 
-        let capaMarcadores = null;
+        let mapaInstancia = null; let capaMarcadores = null;
 
-        // Función base de color para comunas (sin atenuación)
         function obtenerColorTerritorioBase(nombreComuna) {
             let texto = String(nombreComuna).toUpperCase().trim();
             if (texto.startsWith('ITM')) return '#27ae60';
@@ -161,39 +165,88 @@
             return '#7f8c8d'; 
         }
 
-        Papa.parse(urlCSV, {
-            download: true, header: true, dynamicTyping: true,
-            complete: function(resultados) {
-                datosGlobales = resultados.data.map(fila => {
-                    let mesLimpio = "Desconocido"; let anioStr = "Desconocido";
-                    if (fila['MES']) mesLimpio = String(fila['MES']).toLowerCase().split('-')[0].trim();
-                    if (fila['FECHA']) { let match = String(fila['FECHA']).match(/\d{4}/); if (match) { anioStr = match[0]; aniosDetectados.add(anioStr); } }
+        // Función promesa para descargar los CSV de forma asíncrona
+        function descargarCSV(url) {
+            return new Promise((resolve, reject) => {
+                Papa.parse(url, {
+                    download: true, header: true, dynamicTyping: true,
+                    complete: (resultado) => resolve(resultado.data),
+                    error: (error) => reject(error)
+                });
+            });
+        }
 
-                    let mVal = 0; let fVal = 0;
-                    for (let key in fila) {
-                        if (key.trim() === 'M') mVal = parseInt(fila[key]) || 0;
-                        if (key.trim() === 'F') fVal = parseInt(fila[key]) || 0;
-                    }
+        // CONTROLADOR MAESTRO PARALELO
+        Promise.all([descargarCSV(urlComentadas), descargarCSV(urlLibres)]).then(([csvComentadas, csvLibres]) => {
+            
+            // 1. Procesar Fuente 1: Comentadas
+            datosComentadas = csvComentadas.map(fila => {
+                let mesLimpio = "Desconocido"; let anioStr = "Desconocido";
+                if (fila['MES']) mesLimpio = String(fila['MES']).toLowerCase().split('-')[0].trim();
+                if (fila['FECHA']) { let match = String(fila['FECHA']).match(/\d{4}/); if (match) { anioStr = match[0]; aniosDetectados.add(anioStr); } }
+                
+                let mVal = 0; let fVal = 0;
+                for (let k in fila) {
+                    if (k.trim() === 'M') mVal = parseInt(fila[k]) || 0;
+                    if (k.trim() === 'F') fVal = parseInt(fila[k]) || 0;
+                }
+                let latStr = String(fila['LATITUD'] || '').replace(',', '.'); let lonStr = String(fila['LONGITUD'] || '').replace(',', '.');
 
-                    let latStr = String(fila['LATITUD'] || '').replace(',', '.'); let lonStr = String(fila['LONGITUD'] || '').replace(',', '.');
+                return {
+                    MES_LIMPIO: mesLimpio, ANIO: anioStr,
+                    ASISTENTES: parseInt(fila['NÚMERO TOTAL DE PERSONAS ASISTENTES']) || 0,
+                    GRUPOS: parseInt(fila['NÚMERO DE GRUPOS POR INSTITUCIÓN U ORGANIZACIÓN COMUNITARIA']) || 0,
+                    M: mVal, F: fVal,
+                    EDAD: fila['RANGO DE EDAD'] ? String(fila['RANGO DE EDAD']).trim() : 'Sin clasificar',
+                    COMUNA: fila['Comuna'] ? String(fila['Comuna']).trim() : 'Sin Registro',
+                    INSTITUCION: fila['INSTITUCIÓN U ORGANIZACIÓN'] ? String(fila['INSTITUCIÓN U ORGANIZACIÓN']).trim() : 'Institución No Especificada',
+                    LAT: parseFloat(latStr), LON: parseFloat(lonStr),
+                    TIPO_SECTOR: fila['Tipo'] ? String(fila['Tipo']).toUpperCase().trim() : 'SIN REGISTRO',
+                    DESCRIPTOR: fila['DESCRIPTOR DE GRUPO'] ? String(fila['DESCRIPTOR DE GRUPO']).trim() : 'Sin Registro'
+                };
+            }).filter(d => d.ASISTENTES > 0 || d.GRUPOS > 0);
 
-                    return {
-                        MES_LIMPIO: mesLimpio, ANIO: anioStr,
-                        ASISTENTES: parseInt(fila['NÚMERO TOTAL DE PERSONAS ASISTENTES']) || 0,
-                        GRUPOS: parseInt(fila['NÚMERO DE GRUPOS POR INSTITUCIÓN U ORGANIZACIÓN COMUNITARIA']) || 0,
-                        M: mVal, F: fVal,
-                        EDAD: fila['RANGO DE EDAD'] ? String(fila['RANGO DE EDAD']).trim() : 'Sin clasificar',
-                        COMUNA: fila['Comuna'] ? String(fila['Comuna']).trim() : 'Sin Registro',
-                        INSTITUCION: fila['INSTITUCIÓN U ORGANIZACIÓN'] ? String(fila['INSTITUCIÓN U ORGANIZACIÓN']).trim() : 'Institución No Especificada',
-                        LAT: parseFloat(latStr), LON: parseFloat(lonStr),
-                        TIPO_SECTOR: fila['Tipo'] ? String(fila['Tipo']).toUpperCase().trim() : 'SIN REGISTRO',
-                        DESCRIPTOR: fila['DESCRIPTOR DE GRUPO'] ? String(fila['DESCRIPTOR DE GRUPO']).trim() : 'Sin Registro'
-                    };
-                }).filter(d => d.ASISTENTES > 0 || d.GRUPOS > 0);
+            // 2. Procesar Fuente 2: Libres
+            datosLibres = csvLibres.map(fila => {
+                let mesLimpio = "Desconocido"; let anioStr = "Desconocido";
+                if (fila['MES']) mesLimpio = String(fila['MES']).toLowerCase().split('-')[0].trim();
+                if (fila['FECHA']) { let match = String(fila['FECHA']).match(/\d{4}/); if (match) { anioStr = match[0]; aniosDetectados.add(anioStr); } }
 
-                llenarSelectorAnios(); inicializarMapa(); procesarDatos(); 
-            }
-        });
+                // Sumar dinámicamente semestres limpiando espacios
+                let semestres = {};
+                for(let i=1; i<=10; i++) { semestres[i+'S'] = 0; }
+                
+                let docentes = 0; let empleados = 0; let contratistas = 0; let ninos = 0;
+                let egresadoITM = 0; let egresadoLaSalle = 0; let estudiantes = 0;
+                let comunidad = 0; let externos = 0; let publicoITM = 0;
+
+                for (let k in fila) {
+                    let keyNorm = k.trim();
+                    if (/^\d+S$/.test(keyNorm)) semestres[keyNorm] = parseInt(fila[k]) || 0;
+                    if (keyNorm === 'Docentes') docentes = parseInt(fila[k]) || 0;
+                    if (keyNorm === 'Empleados') empleados = parseInt(fila[k]) || 0;
+                    if (keyNorm === 'Contratistas') contratistas = parseInt(fila[k]) || 0;
+                    if (keyNorm.startsWith('Niñ')) ninos = parseInt(fila[k]) || 0;
+                    if (keyNorm === 'Egresado' || keyNorm === 'Egresado ITM') egresadoITM = parseInt(fila[k]) || 0;
+                    if (keyNorm === 'EgresadoLa Salle') egresadoLaSalle = parseInt(fila[k]) || 0;
+                    if (keyNorm === 'Estudiantes') estudiantes = parseInt(fila[k]) || 0;
+                    if (keyNorm === 'COMUNIDAD') comunidad = parseInt(fila[k]) || 0;
+                    if (keyNorm === 'EXTERNOS') externos = parseInt(fila[k]) || 0;
+                    // Manejo del campo ITM duplicado
+                    if (keyNorm === 'ITM') publicoITM = parseInt(fila[k]) || 0; 
+                }
+
+                return {
+                    MES_LIMPIO: mesLimpio, ANIO: anioStr,
+                    VISITAS_LIBRES: parseInt(fila['CANTIDAD DE VISITAS']) || 0,
+                    SEMUESTRES: semestres,
+                    VINCULACION: { docentes, empleados, contratistas, ninos, egresadoITM, egresadoLaSalle, estudiantes },
+                    PROCEDENCIA: { comunidad, externos, publicoITM }
+                };
+            }).filter(d => d.VISITAS_LIBRES > 0);
+
+            llenarSelectorAnios(); inicializarMapa(); procesarDatos();
+        }).catch(err => console.error("Error cargando fuentes analíticas:", err));
 
         function llenarSelectorAnios() {
             const selector = document.getElementById('selectorAnio');
@@ -206,35 +259,31 @@
             capaMarcadores = L.layerGroup().addTo(mapaInstancia);
         }
 
-        // --- MOTOR MULTIDIMENSIONAL ---
-        // Extrae los datos aplicando todos los filtros, EXCEPTO el del propio gráfico que se está dibujando
-        function obtenerDatosCruze(excluirFiltro) {
+        function obtenerDatosFiltrados(fuente, excluirFiltro) {
             const anioElegido = document.getElementById('selectorAnio').value;
             const sectorElegido = document.getElementById('selectorTipo').value;
+            let datos = (fuente === 'comentadas') ? datosComentadas : datosLibres;
 
-            // 1. Aplica filtros superiores maestros
-            let datos = datosGlobales;
             if (anioElegido !== "TODOS") datos = datos.filter(d => d.ANIO === anioElegido);
-            if (sectorElegido !== "TODOS") {
-                let sectorNorm = sectorElegido.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-                datos = datos.filter(d => d.TIPO_SECTOR.normalize("NFD").replace(/[\u0300-\u036f]/g, "") === sectorNorm);
+            
+            if (fuente === 'comentadas' && sectorElegido !== "TODOS") {
+                let secNorm = sectorElegido.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+                datos = datos.filter(d => d.TIPO_SECTOR.normalize("NFD").replace(/[\u0300-\u036f]/g, "") === secNorm);
             }
 
-            // 2. Aplica filtros cruzados interactivos
             if (excluirFiltro !== 'mes' && filtrosGlobales.mes) datos = datos.filter(d => d.MES_LIMPIO === filtrosGlobales.mes);
-            if (excluirFiltro !== 'comuna' && filtrosGlobales.comuna) datos = datos.filter(d => d.COMUNA === filtrosGlobales.comuna);
-            if (excluirFiltro !== 'edad' && filtrosGlobales.edad) datos = datos.filter(d => d.EDAD === filtrosGlobales.edad);
-            if (excluirFiltro !== 'descriptor' && filtrosGlobales.descriptor) datos = datos.filter(d => d.DESCRIPTOR === filtrosGlobales.descriptor);
-            
+            if (fuente === 'comentadas') {
+                if (excluirFiltro !== 'comuna' && filtrosGlobales.comuna) datos = datos.filter(d => d.COMUNA === filtrosGlobales.comuna);
+                if (excluirFiltro !== 'edad' && filtrosGlobales.edad) datos = datos.filter(d => d.EDAD === filtrosGlobales.edad);
+                if (excluirFiltro !== 'descriptor' && filtrosGlobales.descriptor) datos = datos.filter(d => d.DESCRIPTOR === filtrosGlobales.descriptor);
+            }
             return datos;
         }
 
-        // Función universal para manejar los clics y activar el efecto "Toggle"
         function manejarClicFiltro(tipoFiltro) {
             return (evt, elementos, chart) => {
                 if (elementos.length > 0) {
                     const clickeada = chart.data.labels[elementos[0].index];
-                    // Efecto Interruptor (Toggle): Si ya estaba seleccionado, se apaga. Si no, se enciende.
                     filtrosGlobales[tipoFiltro] = (filtrosGlobales[tipoFiltro] === clickeada) ? null : clickeada;
                     procesarDatos();
                 }
@@ -242,151 +291,135 @@
         }
 
         function procesarDatos() {
-            // 1. PANEL MESES
-            let datosMeses = obtenerDatosCruze('mes');
-            const anioElegido = document.getElementById('selectorAnio').value;
-            let datasetsPrincipal = [];
-            
-            if (anioElegido === "TODOS") {
-                let anios = Array.from(aniosDetectados).sort();
-                anios.forEach((anio, index) => {
-                    let valores = mesesOrden.map(m => datosMeses.filter(d => d.ANIO === anio && d.MES_LIMPIO === m).reduce((sum, d) => sum + d.ASISTENTES, 0));
-                    // Si hay un mes seleccionado, atenúa a gris los demás meses
-                    let colores = mesesOrden.map(m => (filtrosGlobales.mes && filtrosGlobales.mes !== m) ? '#e0e0e0' : paletaAzules[index % paletaAzules.length]);
-                    datasetsPrincipal.push({ label: 'Asistentes ' + anio, data: valores, backgroundColor: colores, borderRadius: 4 });
-                });
-            } else {
-                let valores = mesesOrden.map(m => datosMeses.filter(d => d.MES_LIMPIO === m).reduce((sum, d) => sum + d.ASISTENTES, 0));
-                let colores = mesesOrden.map(m => (filtrosGlobales.mes && filtrosGlobales.mes !== m) ? '#e0e0e0' : '#3498db');
-                datasetsPrincipal.push({ label: 'Asistentes ' + anioElegido, data: valores, backgroundColor: colores, borderRadius: 4 });
-            }
-            actualizarGraficoConfig('asistentes', 'chartAsistentes', 'bar', mesesOrden, datasetsPrincipal, true, manejarClicFiltro('mes'));
+            // --- 1. PROCESAR GRÁFICO MAESTRO INTER-FUENTE ---
+            let f1Mes = obtenerDatosFiltrados('comentadas', 'mes');
+            let f2Mes = obtenerDatosFiltrados('libres', 'mes');
 
-            // 2. PANEL EDAD
-            let datosEdad = obtenerDatosCruze('edad');
-            let edadesMap = {};
-            datosEdad.forEach(d => { if (d.EDAD !== 'Sin clasificar') edadesMap[d.EDAD] = (edadesMap[d.EDAD] || 0) + d.ASISTENTES; });
-            let etiquetasEdad = Object.keys(edadesMap).sort();
-            let valoresEdad = etiquetasEdad.map(e => edadesMap[e]);
-            let coloresEdad = etiquetasEdad.map(e => (filtrosGlobales.edad && filtrosGlobales.edad !== e) ? '#e0e0e0' : '#9b59b6');
-            actualizarGraficoBasico('edad', 'chartEdad', 'bar', etiquetasEdad, valoresEdad, coloresEdad, 'Asistentes', manejarClicFiltro('edad'));
+            let asistenciasComentadas = mesesOrden.map(m => f1Mes.filter(d => d.MES_LIMPIO === m).reduce((s, d) => s + d.ASISTENTES, 0));
+            let asistenciasLibres = mesesOrden.map(m => f2Mes.filter(d => d.MES_LIMPIO === m).reduce((s, d) => s + d.VISITAS_LIBRES, 0));
 
-            // 3. PANEL DESCRIPTOR DE GRUPO
-            let datosDesc = obtenerDatosCruze('descriptor');
-            let descMap = {};
-            datosDesc.forEach(d => { if (d.DESCRIPTOR !== 'Sin Registro' && d.DESCRIPTOR !== '') descMap[d.DESCRIPTOR] = (descMap[d.DESCRIPTOR] || 0) + d.ASISTENTES; });
-            let etiquetasDesc = Object.keys(descMap).sort((a, b) => descMap[b] - descMap[a]);
-            let valoresDesc = etiquetasDesc.map(e => descMap[e]);
-            let coloresDesc = etiquetasDesc.map(e => (filtrosGlobales.descriptor && filtrosGlobales.descriptor !== e) ? '#e0e0e0' : '#f39c12');
-            actualizarGraficoHorizontalScroll('descriptor', 'chartDescriptor', 'wrapperDescriptor', etiquetasDesc, valoresDesc, coloresDesc, 'Asistentes', manejarClicFiltro('descriptor'));
+            let coloresC = mesesOrden.map(m => (filtrosGlobales.mes && filtrosGlobales.mes !== m) ? '#e0e0e0' : '#3498db');
+            let coloresL = mesesOrden.map(m => (filtrosGlobales.mes && filtrosGlobales.mes !== m) ? '#e0e0e0' : '#f1c40f');
 
-            // 4. PANEL COMUNAS
-            let datosComuna = obtenerDatosCruze('comuna');
-            let comunaMap = {};
-            datosComuna.forEach(d => { if (d.COMUNA !== 'Sin Registro' && d.COMUNA !== '') comunaMap[d.COMUNA] = (comunaMap[d.COMUNA] || 0) + d.ASISTENTES; });
-            let etiquetasComuna = Object.keys(comunaMap).sort((a, b) => comunaMap[b] - comunaMap[a]);
-            let valoresComuna = etiquetasComuna.map(e => comunaMap[e]);
-            let coloresComuna = etiquetasComuna.map(e => (filtrosGlobales.comuna && filtrosGlobales.comuna !== e) ? '#e0e0e0' : obtenerColorTerritorioBase(e));
-            actualizarGraficoHorizontalScroll('comuna', 'chartComuna', 'wrapperComuna', etiquetasComuna, valoresComuna, coloresComuna, 'Asistentes', manejarClicFiltro('comuna'));
+            let datasetsMaestros = [
+                { label: 'Visitas Comentadas', data: asistenciasComentadas, backgroundColor: coloresC, borderRadius: 4 },
+                { label: 'Recorridos Libres', data: asistenciasLibres, backgroundColor: coloresL, borderRadius: 4 }
+            ];
+            actualizarGraficoConfig('asistentes', 'chartAsistentes', 'bar', mesesOrden, datasetsMaestros, true, manejarClicFiltro('mes'));
 
-            // 5. MAPA Y GRÁFICOS SIN CLIC (Usan todos los filtros estrictos)
-            let datosTotales = obtenerDatosCruze('ninguno');
-            
-            // Mapa
-            actualizarMapaConOverlapping(datosTotales);
-            
-            // Género
-            let totalM = 0; let totalF = 0; datosTotales.forEach(d => { totalM += d.M; totalF += d.F; });
-            actualizarGraficoPie('genero', 'chartGenero', ['Masculino (M)', 'Femenino (F)'], [totalM, totalF], ['#34495e', '#e74c3c']);
-            
-            // Grupos (No es clickeable, solo informativo)
-            let datosGruposMes = mesesOrden.map(m => datosTotales.filter(d => d.MES_LIMPIO === m).reduce((sum, d) => sum + d.GRUPOS, 0));
-            actualizarGraficoBasico('grupos', 'chartGrupos', 'bar', mesesOrden, datosGruposMes, '#2ecc71', 'Grupos', null);
+            // AISLAR BASES AFECTADAS POR SELECCIONES INTERACTIVAS
+            let f1Secundario = obtenerDatosFiltrados('comentadas', 'ninguno');
+            let f2Secundario = obtenerDatosFiltrados('libres', 'ninguno');
+
+            // Si hay filtro de comuna, edad o descriptor, afecta los paneles centralizados de comentadas
+            let f1Paneles = f1Secundario;
+            if (filtrosGlobales.comuna) f1Paneles = f1Paneles.filter(d => d.COMUNA === filtrosGlobales.comuna);
+            if (filtrosGlobales.edad) f1Paneles = f1Paneles.filter(d => d.EDAD === filtrosGlobales.edad);
+            if (filtrosGlobales.descriptor) f1Paneles = f1Paneles.filter(d => d.DESCRIPTOR === filtrosGlobales.descriptor);
+
+            // --- 2. EVALUAR MÓDULO 1: COMENTADAS ---
+            let gruposMes = mesesOrden.map(m => f1Paneles.filter(d => d.MES_LIMPIO === m).reduce((s, d) => s + d.GRUPOS, 0));
+            actualizarGraficoBasico('grupos', 'chartGrupos', 'bar', mesesOrden, gruposMes, '#2ecc71', 'Grupos', null);
+
+            let edadMap = {}; f1Paneles.forEach(d => { if (d.EDAD !== 'Sin clasificar') edadMap[d.EDAD] = (edadMap[d.EDAD] || 0) + d.ASISTENTES; });
+            let labelsEdad = Object.keys(edadMap).sort();
+            let coloresEdad = labelsEdad.map(e => (filtrosGlobales.edad && filtrosGlobales.edad !== e) ? '#e0e0e0' : '#9b59b6');
+            actualizarGraficoBasico('edad', 'chartEdad', 'bar', labelsEdad, labelsEdad.map(e => edadMap[e]), coloresEdad, 'Asistentes', manejarClicFiltro('edad'));
+
+            let totalM = 0; let totalF = 0; f1Paneles.forEach(d => { totalM += d.M; totalF += d.F; });
+            actualizarGraficoPie('genero', 'chartGenero', ['Masculino', 'Femenino'], [totalM, totalF], ['#34495e', '#e74c3c']);
+
+            let descMap = {}; f1Paneles.forEach(d => { if (d.DESCRIPTOR !== 'Sin Registro' && d.DESCRIPTOR !== '') descMap[d.DESCRIPTOR] = (descMap[d.DESCRIPTOR] || 0) + d.ASISTENTES; });
+            let labelsDesc = Object.keys(descMap).sort((a,b) => descMap[b] - descMap[a]);
+            let coloresDesc = labelsDesc.map(e => (filtrosGlobales.descriptor && filtrosGlobales.descriptor !== e) ? '#e0e0e0' : '#f39c12');
+            actualizarGraficoHorizontalScroll('descriptor', 'chartDescriptor', 'wrapperDescriptor', labelsDesc, labelsDesc.map(e => descMap[e]), coloresDesc, 'Asistentes', manejarClicFiltro('descriptor'));
+
+            // TERRITORIO (COMENTADAS)
+            let comMap = {}; f1Secundario.forEach(d => { if (d.COMUNA !== 'Sin Registro' && d.COMUNA !== '') comMap[d.COMUNA] = (comMap[d.COMUNA] || 0) + d.ASISTENTES; });
+            let labelsCom = Object.keys(comMap).sort((a,b) => comMap[b] - comMap[a]);
+            let coloresCom = labelsCom.map(e => (filtrosGlobales.comuna && filtrosGlobales.comuna !== e) ? '#e0e0e0' : obtenerColorTerritorioBase(e));
+            actualizarGraficoHorizontalScroll('comuna', 'chartComuna', 'wrapperComuna', labelsCom, labelsCom.map(e => comMap[e]), coloresCom, 'Asistentes', manejarClicFiltro('comuna'));
+            actualizarMapaGeorreferenciado(f1Secundario);
+
+            // --- 3. EVALUAR MÓDULO 2: RECORRIDOS LIBRES ---
+            // Gráfica de Semestres (Academic Evolution)
+            let semTotales = {}; for(let i=1; i<=10; i++) { semTotales[i+'S'] = 0; }
+            f2Secundario.forEach(d => { for(let key in d.SEMUESTRES) { semTotales[key] += d.SEMUESTRES[key]; } });
+            actualizarGraficoConfig('semestres', 'chartSemestres', 'line', Object.keys(semTotales), [{ label: 'Estudiantes', data: Object.values(semTotales), borderColor: '#16a085', tension: 0.2, fill: false }], false, null);
+
+            // Gráfica de Vinculación
+            let vincTotales = { 'Estudiantes': 0, 'Docentes': 0, 'Empleados': 0, 'Contratistas': 0, 'Niñ@s': 0, 'Egresados': 0 };
+            f2Secundario.forEach(d => {
+                vincTotales['Estudiantes'] += d.VINCULACION.estudiantes;
+                vincTotales['Docentes'] += d.VINCULACION.docentes;
+                vincTotales['Empleados'] += d.VINCULACION.empleados;
+                vincTotales['Contratistas'] += d.VINCULACION.contratistas;
+                vincTotales['Niñ@s'] += d.VINCULACION.ninos;
+                vincTotales['Egresados'] += (d.VINCULACION.egresadoITM + d.VINCULACION.egresadoLaSalle);
+            });
+            actualizarGraficoConfig('vinculacion', 'chartVinculacion', 'bar', Object.keys(vincTotales), [{ label: 'Cantidad', data: Object.values(vincTotales), backgroundColor: '#d35400', borderRadius: 4 }], false, null);
+
+            // Gráfica de Procedencia
+            let proTotales = { 'Comunidad': 0, 'Externos': 0, 'ITM (Libre)': 0 };
+            f2Secundario.forEach(d => {
+                proTotales['Comunidad'] += d.PROCEDENCIA.comunidad;
+                proTotales['Externos'] += d.PROCEDENCIA.externos;
+                proTotales['ITM (Libre)'] += d.PROCEDENCIA.publicoITM;
+            });
+            actualizarGraficoPie('procedencia', 'chartProcedencia', Object.keys(proTotales), Object.values(proTotales), ['#2c3e50', '#bdc3c7', '#27ae60']);
         }
 
-        // --- MOTORES DE DIBUJO ---
-        function actualizarMapaConOverlapping(datosMapear) {
-            capaMarcadores.clearLayers(); 
-            let agrupacionGeografica = {};
-
+        // --- MAPA ANTI-OVERLAPPING ---
+        function actualizarMapaGeorreferenciado(datosMapear) {
+            capaMarcadores.clearLayers(); let agrupacion = {};
             datosMapear.forEach(d => {
+                if (filtrosGlobales.comuna && d.COMUNA !== filtrosGlobales.comuna) return;
                 if (!isNaN(d.LAT) && !isNaN(d.LON)) {
-                    let llaveUnica = d.LAT + "_" + d.LON + "_" + d.INSTITUCION;
-                    if (!agrupacionGeografica[llaveUnica]) {
-                        agrupacionGeografica[llaveUnica] = { lat: d.LAT, lon: d.LON, institucion: d.INSTITUCION, comuna: d.COMUNA, asistentes: 0 };
-                    }
-                    agrupacionGeografica[llaveUnica].asistentes += d.ASISTENTES;
+                    let llave = d.LAT + "_" + d.LON + "_" + d.INSTITUCION;
+                    if (!agrupacion[llave]) agrupacion[llave] = { lat: d.LAT, lon: d.LON, inst: d.INSTITUCION, com: d.COMUNA, sum: 0 };
+                    agrupacion[llave].sum += d.ASISTENTES;
                 }
             });
-
-            Object.values(agrupacionGeografica).forEach(punto => {
-                let radioBurbuja = Math.max(4, Math.sqrt(punto.asistentes) * 1.2);
-                let colorDinamico = obtenerColorTerritorioBase(punto.comuna); 
-                let marcador = L.circleMarker([punto.lat, punto.lon], { radius: radioBurbuja, color: colorDinamico, fillColor: colorDinamico, fillOpacity: 0.7, weight: 1 });
-                let popupHTML = `<div style="text-align:center; font-family: sans-serif;"><strong style="color: #2c3e50;">${punto.institucion}</strong><br><span style="color:#7f8c8d;">${punto.comuna}</span><hr style="margin:5px 0;"><strong style="color:${colorDinamico}; font-size:16px;">${punto.asistentes} Asistentes Totales</strong></div>`;
-                marcador.bindPopup(popupHTML); capaMarcadores.addLayer(marcador);
+            Object.values(agrupacion).forEach(p => {
+                let radio = Math.max(4, Math.sqrt(p.sum) * 1.2); let col = obtenerColorTerritorioBase(p.com);
+                if (filtrosGlobales.comuna && filtrosGlobales.comuna !== p.com) col = '#e0e0e0';
+                let marcador = L.circleMarker([p.lat, p.lon], { radius: radio, color: col, fillColor: col, fillOpacity: 0.7, weight: 1 });
+                marcador.bindPopup(`<div style="text-align:center;"><strong>${p.inst}</strong><br><span style="color:#7f8c8d;">${p.com}</span><hr style="margin:5px 0;"><strong style="color:${col}; font-size:16px;">${p.sum} Asistentes Totales</strong></div>`);
+                capaMarcadores.addLayer(marcador);
             });
         }
 
+        // --- CONFIGURADORES GRÁFICOS INTERNOS ---
         function actualizarGraficoConfig(idGrafico, idCanvas, tipo, etiquetas, configDatasets, mostrarLeyenda, funcionClic) {
             const ctx = document.getElementById(idCanvas).getContext('2d');
-            let configOpciones = { 
-                responsive: true, maintainAspectRatio: false, 
-                layout: { padding: { top: 30, right: 20 } },
-                plugins: { legend: { display: mostrarLeyenda } }
-            };
-
+            let opciones = { responsive: true, maintainAspectRatio: false, layout: { padding: { top: 30, right: 20 } }, plugins: { legend: { display: mostrarLeyenda } } };
             if (tipo === 'bar') {
-                let maximoValor = 0;
-                configDatasets.forEach(ds => { let maxDs = Math.max(...ds.data); if (maxDs > maximoValor) maximoValor = maxDs; });
-                configOpciones.scales = { y: { suggestedMax: maximoValor * 1.15 } };
+                let max = 0; configDatasets.forEach(ds => { let m = Math.max(...ds.data); if (m > max) max = m; });
+                opciones.scales = { y: { suggestedMax: max * 1.15 } };
             }
-
-            if (funcionClic) configOpciones.onClick = funcionClic;
-            
-            if (graficos[idGrafico]) { 
-                graficos[idGrafico].data.labels = etiquetas; graficos[idGrafico].data.datasets = configDatasets; 
-                graficos[idGrafico].options = configOpciones; graficos[idGrafico].update(); 
-            } else { 
-                graficos[idGrafico] = new Chart(ctx, { type: tipo, data: { labels: etiquetas, datasets: configDatasets }, options: configOpciones }); 
-            }
+            if (funcionClic) opciones.onClick = (e, el) => funcionClic(e, el, graficos[idGrafico]);
+            if (graficos[idGrafico]) { graficos[idGrafico].data.labels = etiquetas; graficos[idGrafico].data.datasets = configDatasets; graficos[idGrafico].options = opciones; graficos[idGrafico].update(); } 
+            else { graficos[idGrafico] = new Chart(ctx, { type: tipo, data: { labels: etiquetas, datasets: configDatasets }, options: opciones }); }
         }
 
         function actualizarGraficoBasico(idGrafico, idCanvas, tipo, etiquetas, valores, colores, labelDataset, funcionClic) {
-            // Pasamos "false" para apagar la leyenda superior redundante
             actualizarGraficoConfig(idGrafico, idCanvas, tipo, etiquetas, [{ label: labelDataset, data: valores, backgroundColor: colores, borderRadius: 4 }], false, funcionClic);
         }
 
         function actualizarGraficoHorizontalScroll(idGrafico, idCanvas, idWrapper, etiquetas, valores, arrayColores, labelDataset, funcionClic) {
             const canvas = document.getElementById(idCanvas); const wrapper = document.getElementById(idWrapper); const ctx = canvas.getContext('2d');
-            const alturaMinima = wrapper.parentElement.clientHeight;
-            const altoNecesario = Math.max(alturaMinima, etiquetas.length * 35);
-            wrapper.style.height = altoNecesario + 'px';
-
-            let opcionesChart = {
-                indexAxis: 'y', responsive: true, maintainAspectRatio: false,
-                plugins: { datalabels: { align: 'right', anchor: 'end' }, legend: { display: false } },
-                scales: { x: { suggestedMax: Math.max(...valores) * 1.15 } } // Ajuste 15% para que no se corten los números
-            };
-
-            if (funcionClic) opcionesChart.onClick = funcionClic;
-
-            if (graficos[idGrafico]) { 
-                graficos[idGrafico].data.labels = etiquetas; graficos[idGrafico].data.datasets[0].data = valores; 
-                graficos[idGrafico].data.datasets[0].backgroundColor = arrayColores; graficos[idGrafico].options = opcionesChart; graficos[idGrafico].update(); 
-            } else { 
-                graficos[idGrafico] = new Chart(ctx, { type: 'bar', data: { labels: etiquetas, datasets: [{ label: labelDataset, data: valores, backgroundColor: arrayColores, borderRadius: 4 }] }, options: opcionesChart }); 
-            }
+            wrapper.style.height = Math.max(wrapper.parentElement.clientHeight, etiquetas.length * 35) + 'px';
+            let ops = { indexAxis: 'y', responsive: true, maintainAspectRatio: false, plugins: { datalabels: { align: 'right', anchor: 'end' }, legend: { display: false } }, scales: { x: { suggestedMax: Math.max(...valores) * 1.15 } } };
+            if (funcionClic) ops.onClick = (e, el) => funcionClic(e, el, graficos[idGrafico]);
+            if (graficos[idGrafico]) { graficos[idGrafico].data.labels = etiquetas; graficos[idGrafico].data.datasets[0].data = valores; graficos[idGrafico].data.datasets[0].backgroundColor = arrayColores; graficos[idGrafico].options = ops; graficos[idGrafico].update(); } 
+            else { graficos[idGrafico] = new Chart(ctx, { type: 'bar', data: { labels: etiquetas, datasets: [{ label: labelDataset, data: valores, backgroundColor: arrayColores, borderRadius: 4 }] }, options: ops }); }
         }
 
         function actualizarGraficoPie(idGrafico, idCanvas, etiquetas, valores, colores) {
             const ctx = document.getElementById(idCanvas).getContext('2d');
-            if (valores[0] === 0 && valores[1] === 0) valores = [];
-            if (graficos[idGrafico]) { 
-                graficos[idGrafico].data.datasets[0].data = valores; graficos[idGrafico].update(); 
-            } else { 
-                graficos[idGrafico] = new Chart(ctx, { type: 'doughnut', data: { labels: etiquetas, datasets: [{ data: valores, backgroundColor: colores }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { datalabels: { color: '#fff', font: { size: 14, weight: 'bold' }, anchor: 'center', align: 'center' } } } }); 
-            }
+            if (valores.every(v => v === 0)) valores = [];
+            if (graficos[idGrafico]) { graficos[idGrafico].data.datasets[0].data = valores; graficos[idGrafico].update(); } 
+            else { graficos[idGrafico] = new Chart(ctx, { type: 'doughnut', data: { labels: etiquetas, datasets: [{ data: valores, backgroundColor: colores }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { datalabels: { color: '#fff', font: { size: 13, weight: 'bold' }, anchor: 'center', align: 'center' } } } }); }
         }
 
         function resetearFiltros() { 
