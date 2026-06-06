@@ -314,19 +314,23 @@
 
             // 2. MÓDULO 1: COMENTADAS
             let gruposMes = mesesOrden.map(m => f1Paneles.filter(d => d.MES_LIMPIO === m).reduce((s, d) => s + d.GRUPOS, 0));
-            actualizarGraficoBasico('grupos', 'chartGrupos', 'bar', mesesOrden, gruposMes, '#2ecc71', 'Grupos', null);
+            // Actualizado al Gris profesional
+            actualizarGraficoBasico('grupos', 'chartGrupos', 'bar', mesesOrden, gruposMes, '#7f8c8d', 'Grupos', null);
 
             let edadMap = {}; f1Paneles.forEach(d => { if (d.EDAD !== 'Sin clasificar') edadMap[d.EDAD] = (edadMap[d.EDAD] || 0) + d.ASISTENTES; });
             let labelsEdad = Object.keys(edadMap).sort();
-            let coloresEdad = labelsEdad.map(e => (filtrosGlobales.edad && filtrosGlobales.edad !== e) ? '#e0e0e0' : '#9b59b6');
+            // Actualizado al Azul de las comunas
+            let coloresEdad = labelsEdad.map(e => (filtrosGlobales.edad && filtrosGlobales.edad !== e) ? '#e0e0e0' : '#2980b9');
             actualizarGraficoBasico('edad', 'chartEdad', 'bar', labelsEdad, labelsEdad.map(e => edadMap[e]), coloresEdad, 'Asistentes', manejarClicFiltro('edad'));
 
             let totalM = 0; let totalF = 0; f1Paneles.forEach(d => { totalM += d.M; totalF += d.F; });
-            actualizarGraficoPie('genero', 'chartGenero', ['Masculino', 'Femenino'], [totalM, totalF], ['#34495e', '#e74c3c']);
+            // Actualizado a Azul y Rojo Google
+            actualizarGraficoPie('genero', 'chartGenero', ['Masculino', 'Femenino'], [totalM, totalF], ['#2980b9', '#e67c73']);
 
             let descMap = {}; f1Paneles.forEach(d => { if (d.DESCRIPTOR !== 'Sin Registro' && d.DESCRIPTOR !== '') descMap[d.DESCRIPTOR] = (descMap[d.DESCRIPTOR] || 0) + d.ASISTENTES; });
             let labelsDesc = Object.keys(descMap).sort((a,b) => descMap[b] - descMap[a]);
-            let coloresDesc = labelsDesc.map(e => (filtrosGlobales.descriptor && filtrosGlobales.descriptor !== e) ? '#e0e0e0' : '#f39c12');
+            // Actualizado al Azul de las comunas
+            let coloresDesc = labelsDesc.map(e => (filtrosGlobales.descriptor && filtrosGlobales.descriptor !== e) ? '#e0e0e0' : '#2980b9');
             actualizarGraficoHorizontalScroll('descriptor', 'chartDescriptor', 'wrapperDescriptor', labelsDesc, labelsDesc.map(e => descMap[e]), coloresDesc, 'Asistentes', manejarClicFiltro('descriptor'));
 
             // TERRITORIO (COMENTADAS)
