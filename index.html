@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard MCNS | Analítica Multi-Fuente</title>
+    <title>Dashboard MCNS | Analítica Multi-Fuente V10</title>
     
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
@@ -19,6 +19,21 @@
         .controles select { padding: 8px 12px; font-size: 15px; border-radius: 5px; border: 1px solid #ccc; cursor: pointer; background: #fdfdfd; }
         .btn-reset { padding: 10px 15px; cursor:pointer; background:#e74c3c; color:white; border:none; border-radius:5px; font-weight:bold; transition: background 0.3s; }
         .btn-reset:hover { background: #c0392b; }
+
+        /* NUEVO: Cuadrícula de Tarjetas de Totales (KPIs) */
+        .kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px; margin-bottom: 20px; }
+        .kpi-card { background: white; padding: 20px; border-radius: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); border-left: 5px solid #ccc; }
+        .kpi-card h4 { margin: 0 0 10px 0; color: #7f8c8d; font-size: 0.85em; text-transform: uppercase; letter-spacing: 0.5px; }
+        .kpi-valor { font-size: 2em; font-weight: bold; color: #2c3e50; }
+        
+        /* Colores de acento para KPIs */
+        .border-comentadas { border-left-color: #2980b9; }
+        .border-libres { border-left-color: #e67c73; }
+        .border-total { border-left-color: #2c3e50; }
+
+        /* NUEVO: Barra de proporción apilada integrada */
+        .kpi-barra-proporcion { display: flex; height: 8px; width: 100%; background: #eee; border-radius: 4px; margin-top: 12px; overflow: hidden; }
+        .kpi-barra-proporcion div { height: 100%; transition: width 0.4s ease; }
 
         .dashboard-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px; margin-bottom: 30px; }
         .panel { background: white; padding: 20px; border-radius: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
@@ -66,12 +81,40 @@
                     <option value="COMUNITARIO">Comunitario</option>
                 </select>
             </div>
+            
+            <div>
+                <label for="selectorVerFuentes"><strong>Visualización de Datos: </strong></label>
+                <select id="selectorVerFuentes" onchange="procesarDatos()">
+                    <option value="AMBOS">Comparar Ambos Archivos</option>
+                    <option value="SOLO_COMENTADAS">Solo Visitas Comentadas</option>
+                </select>
+            </div>
+
             <button class="btn-reset" onclick="resetearFiltros()">Limpiar Todos los Filtros</button>
         </div>
     </div>
 
+    <div class="kpi-grid">
+        <div class="kpi-card border-comentadas">
+            <h4>Total Personas Beneficiadas<br><b>Visitas Comentadas</b></h4>
+            <div class="kpi-valor" id="kpiComentadas">0</div>
+        </div>
+        <div class="kpi-card border-libres" id="kpiCardLibres">
+            <h4>Total Personas Beneficiadas<br><b>Recorridos Libres</b></h4>
+            <div class="kpi-valor" id="kpiLibres">0</div>
+        </div>
+        <div class="kpi-card border-total">
+            <h4>Población Total Atendida<br><b>(Suma de Fuentes)</b></h4>
+            <div class="kpi-valor" id="kpiTotalGeneral">0</div>
+            <div class="kpi-barra-proporcion" id="kpiBarraContenedor">
+                <div id="segmentoComentadas" style="background: #2980b9; width: 0%;"></div>
+                <div id="segmentoLibres" style="background: #e67c73; width: 0%;"></div>
+            </div>
+        </div>
+    </div>
+
     <div class="panel panel-principal" style="margin-bottom: 20px;">
-        <h3>COMPARATIVO DE ASISTENCIA: VISITAS COMENTADAS VS RECORRIDOS LIBRES</h3>
+        <h3>COMPARATIVO DE ASISTENCIA MENSUAL</h3>
         <p class="instruccion">👆 Clic en las barras de los meses para filtrar de manera cruzada toda la interfaz</p>
         <div class="contenedor-grafico-principal"><canvas id="chartAsistentes"></canvas></div>
     </div>
@@ -124,19 +167,21 @@
         </div>
     </div>
 
-    <h2 class="seccion-titulo">🚶 Módulo 2: Perfil de Visitantes en Recorridos Libres</h2>
-    <div class="dashboard-grid">
-        <div class="panel" style="grid-column: span 2;">
-            <h3>EVOLUCIÓN ACADÉMICA (Estudiantes por Semestre)</h3>
-            <div class="contenedor-grafico-secundario"><canvas id="chartSemestres"></canvas></div>
-        </div>
-        <div class="panel">
-            <h3>VINCULACIÓN INSTITUCIONAL</h3>
-            <div class="contenedor-grafico-secundario"><canvas id="chartVinculacion"></canvas></div>
-        </div>
-        <div class="panel">
-            <h3>PROCEDENCIA GLOBAL</h3>
-            <div class="contenedor-grafico-secundario"><canvas id="chartProcedencia"></canvas></div>
+    <div id="bloqueModuloLibres">
+        <h2 class="seccion-titulo">🚶 Módulo 2: Perfil de Visitantes en Recorridos Libres</h2>
+        <div class="dashboard-grid">
+            <div class="panel" style="grid-column: span 2;">
+                <h3>EVOLUCIÓN ACADÉMICA (Estudiantes por Semestre)</h3>
+                <div class="contenedor-grafico-secundario"><canvas id="chartSemestres"></canvas></div>
+            </div>
+            <div class="panel">
+                <h3>VINCULACIÓN INSTITUCIONAL</h3>
+                <div class="contenedor-grafico-secundario"><canvas id="chartVinculacion"></canvas></div>
+            </div>
+            <div class="panel">
+                <h3>PROCEDENCIA GLOBAL</h3>
+                <div class="contenedor-grafico-secundario"><canvas id="chartProcedencia"></canvas></div>
+            </div>
         </div>
     </div>
 
@@ -147,13 +192,9 @@
         const urlComentadas = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vS7f26O3sj6abtatPWdf3wa4hdGxMI5gjOZU--SYrJ92jTxZ9Ch6LrTESm_XjWeIRFTrnKJq-c2aed9/pub?output=csv';
         const urlLibres = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSx-9TxdT25K0DSLKTO4YMhWsH0aXkRvMn1Smzj42pfjwEmYgdkhvJyrDQKkxAI8Q/pub?output=csv';
 
-        let datosComentadas = [];
-        let datosLibres = [];
-        let aniosDetectados = new Set(); 
-        
+        let datosComentadas = []; let datosLibres = []; let aniosDetectados = new Set(); 
         let filtrosGlobales = { mes: null, comuna: null, edad: null, descriptor: null };
         let graficos = {};
-        
         const mesesOrden = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
         let mapaInstancia = null; let capaMarcadores = null;
 
@@ -175,29 +216,20 @@
         }
 
         Promise.all([descargarCSV(urlComentadas), descargarCSV(urlLibres)]).then(([csvComentadas, csvLibres]) => {
-            
             datosComentadas = csvComentadas.map(fila => {
                 let mesLimpio = "Desconocido"; let anioStr = "Desconocido";
                 if (fila['MES']) mesLimpio = String(fila['MES']).toLowerCase().split('-')[0].trim();
                 if (fila['FECHA']) { let match = String(fila['FECHA']).match(/\d{4}/); if (match) { anioStr = match[0]; aniosDetectados.add(anioStr); } }
-                
                 let mVal = 0; let fVal = 0;
-                for (let k in fila) {
-                    if (k.trim() === 'M') mVal = parseInt(fila[k]) || 0;
-                    if (k.trim() === 'F') fVal = parseInt(fila[k]) || 0;
-                }
+                for (let k in fila) { if (k.trim() === 'M') mVal = parseInt(fila[k]) || 0; if (k.trim() === 'F') fVal = parseInt(fila[k]) || 0; }
                 let latStr = String(fila['LATITUD'] || '').replace(',', '.'); let lonStr = String(fila['LONGITUD'] || '').replace(',', '.');
-
                 return {
-                    MES_LIMPIO: mesLimpio, ANIO: anioStr,
-                    ASISTENTES: parseInt(fila['NÚMERO TOTAL DE PERSONAS ASISTENTES']) || 0,
-                    GRUPOS: parseInt(fila['NÚMERO DE GRUPOS POR INSTITUCIÓN U ORGANIZACIÓN COMUNITARIA']) || 0,
-                    M: mVal, F: fVal,
+                    MES_LIMPIO: mesLimpio, ANIO: anioStr, ASISTENTES: parseInt(fila['NÚMERO TOTAL DE PERSONAS ASISTENTES']) || 0,
+                    GRUPOS: parseInt(fila['NÚMERO DE GRUPOS POR INSTITUCIÓN U ORGANIZACIÓN COMUNITARIA']) || 0, M: mVal, F: fVal,
                     EDAD: fila['RANGO DE EDAD'] ? String(fila['RANGO DE EDAD']).trim() : 'Sin clasificar',
                     COMUNA: fila['Comuna'] ? String(fila['Comuna']).trim() : 'Sin Registro',
                     INSTITUCION: fila['INSTITUCIÓN U ORGANIZACIÓN'] ? String(fila['INSTITUCIÓN U ORGANIZACIÓN']).trim() : 'Institución No Especificada',
-                    LAT: parseFloat(latStr), LON: parseFloat(lonStr),
-                    TIPO_SECTOR: fila['Tipo'] ? String(fila['Tipo']).toUpperCase().trim() : 'SIN REGISTRO',
+                    LAT: parseFloat(latStr), LON: parseFloat(lonStr), TIPO_SECTOR: fila['Tipo'] ? String(fila['Tipo']).toUpperCase().trim() : 'SIN REGISTRO',
                     DESCRIPTOR: fila['DESCRIPTOR DE GRUPO'] ? String(fila['DESCRIPTOR DE GRUPO']).trim() : 'Sin Registro'
                 };
             }).filter(d => d.ASISTENTES > 0 || d.GRUPOS > 0);
@@ -206,16 +238,9 @@
                 let mesLimpio = "Desconocido"; let anioStr = "Desconocido";
                 if (fila['MES']) mesLimpio = String(fila['MES']).toLowerCase().split('-')[0].trim();
                 if (fila['FECHA']) { let match = String(fila['FECHA']).match(/\d{4}/); if (match) { anioStr = match[0]; aniosDetectados.add(anioStr); } }
-
-                let semestres = {};
-                for(let i=1; i<=10; i++) { semestres[i+'S'] = 0; }
-                
-                let docentes = 0; let empleados = 0; let contratistas = 0; let ninos = 0;
-                let egresadoITM = 0; let egresadoLaSalle = 0; let estudiantes = 0;
-                
-                // Nuevas variables corregidas:
-                let comunidadITM = 0; let externos = 0; 
-
+                let semestres = {}; for(let i=1; i<=10; i++) { semestres[i+'S'] = 0; }
+                let docentes = 0; let empleados = 0; let contratistas = 0; let ninos = 0; let egresadoITM = 0; let egresadoLaSalle = 0; let estudiantes = 0;
+                let comunidadITM = 0; let externos = 0;
                 for (let k in fila) {
                     let keyNorm = k.trim();
                     if (/^\d+S$/.test(keyNorm)) semestres[keyNorm] = parseInt(fila[k]) || 0;
@@ -223,32 +248,24 @@
                     if (keyNorm === 'Empleados') empleados = parseInt(fila[k]) || 0;
                     if (keyNorm === 'Contratistas') contratistas = parseInt(fila[k]) || 0;
                     if (keyNorm.startsWith('Niñ')) ninos = parseInt(fila[k]) || 0;
-                    
-                    // Ajuste de los títulos nuevos reportados
                     if (keyNorm === 'Egresado ITM' || keyNorm === 'Egresado') egresadoITM = parseInt(fila[k]) || 0;
                     if (keyNorm === 'EgresadoLa Salle' || keyNorm === 'Egresado La Salle') egresadoLaSalle = parseInt(fila[k]) || 0;
                     if (keyNorm === 'Estudiantes') estudiantes = parseInt(fila[k]) || 0;
-                    
-                    // Las variables de procedencia corregidas
                     if (keyNorm === 'COMUNIDAD ITM') comunidadITM = parseInt(fila[k]) || 0;
                     if (keyNorm === 'EXTERNOS') externos = parseInt(fila[k]) || 0;
                 }
-
                 return {
-                    MES_LIMPIO: mesLimpio, ANIO: anioStr,
-                    VISITAS_LIBRES: parseInt(fila['CANTIDAD DE VISITAS']) || 0,
-                    SEMUESTRES: semestres,
-                    VINCULACION: { docentes, empleados, contratistas, ninos, egresadoITM, egresadoLaSalle, estudiantes },
-                    PROCEDENCIA: { comunidadITM, externos }
+                    MES_LIMPIO: mesLimpio, ANIO: anioStr, VISITAS_LIBRES: parseInt(fila['CANTIDAD DE VISITAS']) || 0, SEMUESTRES: semestres,
+                    VINCULACION: { docentes, empleados, contratistas, ninos, egresadoITM, egresadoLaSalle, estudiantes }, PROCEDENCIA: { comunidadITM, externos }
                 };
             }).filter(d => d.VISITAS_LIBRES > 0);
 
             llenarSelectorAnios(); inicializarMapa(); procesarDatos();
-        }).catch(err => console.error("Error cargando fuentes analíticas:", err));
+        }).catch(err => console.error("Error cargando fuentes:", err));
 
         function llenarSelectorAnios() {
             const selector = document.getElementById('selectorAnio');
-            Array.from(aniosDetectados).sort().forEach(anio => { let opcion = document.createElement('option'); opcion.value = anio; opcion.text = "Año " + anio; selector.appendChild(opcion); });
+            Array.from(aniosDetectados).sort().forEach(anio => { let opcion = document.createElement('option'); opcion.value = r = anio; opcion.text = "Año " + anio; selector.appendChild(opcion); });
         }
 
         function inicializarMapa() {
@@ -263,12 +280,10 @@
             let datos = (fuente === 'comentadas') ? datosComentadas : datosLibres;
 
             if (anioElegido !== "TODOS") datos = datos.filter(d => d.ANIO === anioElegido);
-            
             if (fuente === 'comentadas' && sectorElegido !== "TODOS") {
                 let secNorm = sectorElegido.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
                 datos = datos.filter(d => d.TIPO_SECTOR.normalize("NFD").replace(/[\u0300-\u036f]/g, "") === secNorm);
             }
-
             if (excluirFiltro !== 'mes' && filtrosGlobales.mes) datos = datos.filter(d => d.MES_LIMPIO === filtrosGlobales.mes);
             if (fuente === 'comentadas') {
                 if (excluirFiltro !== 'comuna' && filtrosGlobales.comuna) datos = datos.filter(d => d.COMUNA === filtrosGlobales.comuna);
@@ -289,81 +304,106 @@
         }
 
         function procesarDatos() {
+            // NUEVO: Capturar estado del interruptor de visualización
+            const modoVisualizacion = document.getElementById('selectorVerFuentes').value;
+
             let f1Mes = obtenerDatosFiltrados('comentadas', 'mes');
             let f2Mes = obtenerDatosFiltrados('libres', 'mes');
 
             let asistenciasComentadas = mesesOrden.map(m => f1Mes.filter(d => d.MES_LIMPIO === m).reduce((s, d) => s + d.ASISTENTES, 0));
-            let asistenciasLibres = mesesOrden.map(m => f2Mes.filter(d => d.MES_LIMPIO === m).reduce((s, d) => s + d.VISITAS_LIBRES, 0));
+            // Si el usuario apagó los recorridos libres, forzamos su suma mensual a 0
+            let asistenciasLibres = (modoVisualizacion === 'SOLO_COMENTADAS') ? mesesOrden.map(m => 0) : mesesOrden.map(m => f2Mes.filter(d => d.MES_LIMPIO === m).reduce((s, d) => s + d.VISITAS_LIBRES, 0));
 
-            let coloresC = mesesOrden.map(m => (filtrosGlobales.mes && filtrosGlobales.mes !== m) ? '#e0e0e0' : '#3498db');
+            // --- CÁLCULO DE TOTALES PARA TARJETAS KPI (Sujeto a filtros de pantalla) ---
+            let f1TotalKpi = obtenerDatosFiltrados('comentadas', 'ninguno');
+            let f2TotalKpi = obtenerDatosFiltrados('libres', 'ninguno');
+
+            // Si hay filtros cruzados activos, reducimos los KPIs
+            if (filtrosGlobales.comuna) f1TotalKpi = f1TotalKpi.filter(d => d.COMUNA === filtrosGlobales.comuna);
+            if (filtrosGlobales.edad) f1TotalKpi = f1TotalKpi.filter(d => d.EDAD === filtrosGlobales.edad);
+            if (filtrosGlobales.descriptor) f1TotalKpi = f1TotalKpi.filter(d => d.DESCRIPTOR === filtrosGlobales.descriptor);
+
+            let sumComentadas = f1TotalKpi.reduce((s, d) => s + d.ASISTENTES, 0);
+            let sumLibres = (modoVisualizacion === 'SOLO_COMENTADAS') ? 0 : f2TotalKpi.reduce((s, d) => s + d.VISITAS_LIBRES, 0);
+            let sumGeneral = sumComentadas + sumLibres;
+
+            // Inyectar valores numéricos formateados en las tarjetas
+            document.getElementById('kpiComentadas').innerText = sumComentadas.toLocaleString();
+            document.getElementById('kpiLibres').innerText = sumLibres.toLocaleString();
+            document.getElementById('kpiTotalGeneral').innerText = sumGeneral.toLocaleString();
+
+            // Calcular porcentajes de la barra apilada interactiva
+            let pctComentadas = sumGeneral > 0 ? (sumComentadas / sumGeneral) * 100 : 0;
+            let pctLibres = sumGeneral > 0 ? (sumLibres / sumGeneral) * 100 : 0;
+            document.getElementById('segmentoComentadas').style.width = pctComentadas + '%';
+            document.getElementById('segmentoLibres').style.width = pctLibres + '%';
+
+            // CONTROL VISUAL DE LA INTERFAZ (Ocultar/Mostrar paneles dinámicamente)
+            if (modoVisualizacion === 'SOLO_COMENTADAS') {
+                document.getElementById('kpiCardLibres').style.display = 'none';
+                document.getElementById('kpiBarraContenedor').style.display = 'none';
+                document.getElementById('bloqueModuloLibres').style.display = 'none';
+            } else {
+                document.getElementById('kpiCardLibres').style.display = 'block';
+                document.getElementById('kpiBarraContenedor').style.display = 'flex';
+                document.getElementById('bloqueModuloLibres').style.display = 'block';
+            }
+
+            // DIBUJAR GRÁFICO PRINCIPAL CONFIGURADO
+            let coloresC = mesesOrden.map(m => (filtrosGlobales.mes && filtrosGlobales.mes !== m) ? '#e0e0e0' : '#2980b9');
             let coloresL = mesesOrden.map(m => (filtrosGlobales.mes && filtrosGlobales.mes !== m) ? '#e0e0e0' : '#e67c73');
 
-            let datasetsMaestros = [
-                { label: 'Visitas Comentadas', data: asistenciasComentadas, backgroundColor: coloresC, borderRadius: 4 },
-                { label: 'Recorridos Libres', data: asistenciasLibres, backgroundColor: coloresL, borderRadius: 4 }
-            ];
+            let datasetsMaestros = [{ label: 'Visitas Comentadas', data: asistenciasComentadas, backgroundColor: coloresC, borderRadius: 4 }];
+            if (modoVisualizacion !== 'SOLO_COMENTADAS') {
+                datasetsMaestros.push({ label: 'Recorridos Libres', data: asistenciasLibres, backgroundColor: coloresL, borderRadius: 4 });
+            }
             actualizarGraficoConfig('asistentes', 'chartAsistentes', 'bar', mesesOrden, datasetsMaestros, true, manejarClicFiltro('mes'));
 
-            let f1Secundario = obtenerDatosFiltrados('comentadas', 'ninguno');
-            let f2Secundario = obtenerDatosFiltrados('libres', 'ninguno');
-
-            let f1Paneles = f1Secundario;
-            if (filtrosGlobales.comuna) f1Paneles = f1Paneles.filter(d => d.COMUNA === filtrosGlobales.comuna);
-            if (filtrosGlobales.edad) f1Paneles = f1Paneles.filter(d => d.EDAD === filtrosGlobales.edad);
-            if (filtrosGlobales.descriptor) f1Paneles = f1Paneles.filter(d => d.DESCRIPTOR === filtrosGlobales.descriptor);
-
-            // 2. MÓDULO 1: COMENTADAS
+            // SECCIÓN SECUNDARIA MÓDULO 1
+            let f1Paneles = f1TotalKpi;
             let gruposMes = mesesOrden.map(m => f1Paneles.filter(d => d.MES_LIMPIO === m).reduce((s, d) => s + d.GRUPOS, 0));
-            // Actualizado al Gris profesional
             actualizarGraficoBasico('grupos', 'chartGrupos', 'bar', mesesOrden, gruposMes, '#7f8c8d', 'Grupos', null);
 
             let edadMap = {}; f1Paneles.forEach(d => { if (d.EDAD !== 'Sin clasificar') edadMap[d.EDAD] = (edadMap[d.EDAD] || 0) + d.ASISTENTES; });
             let labelsEdad = Object.keys(edadMap).sort();
-            // Actualizado al Azul de las comunas
             let coloresEdad = labelsEdad.map(e => (filtrosGlobales.edad && filtrosGlobales.edad !== e) ? '#e0e0e0' : '#2980b9');
             actualizarGraficoBasico('edad', 'chartEdad', 'bar', labelsEdad, labelsEdad.map(e => edadMap[e]), coloresEdad, 'Asistentes', manejarClicFiltro('edad'));
 
             let totalM = 0; let totalF = 0; f1Paneles.forEach(d => { totalM += d.M; totalF += d.F; });
-            // Actualizado a Azul y Rojo Google
-            actualizarGraficoPie('genero', 'chartGenero', ['Masculino', 'Femenino'], [totalM, totalF], ['#2980b9', '#e0e0e0']);
+            actualizarGraficoPie('genero', 'chartGenero', ['Masculino', 'Femenino'], [totalM, totalF], ['#2980b9', '#e67c73']);
 
             let descMap = {}; f1Paneles.forEach(d => { if (d.DESCRIPTOR !== 'Sin Registro' && d.DESCRIPTOR !== '') descMap[d.DESCRIPTOR] = (descMap[d.DESCRIPTOR] || 0) + d.ASISTENTES; });
             let labelsDesc = Object.keys(descMap).sort((a,b) => descMap[b] - descMap[a]);
-            // Actualizado al Azul de las comunas
             let coloresDesc = labelsDesc.map(e => (filtrosGlobales.descriptor && filtrosGlobales.descriptor !== e) ? '#e0e0e0' : '#2980b9');
             actualizarGraficoHorizontalScroll('descriptor', 'chartDescriptor', 'wrapperDescriptor', labelsDesc, labelsDesc.map(e => descMap[e]), coloresDesc, 'Asistentes', manejarClicFiltro('descriptor'));
 
-            // TERRITORIO (COMENTADAS)
-            let comMap = {}; f1Secundario.forEach(d => { if (d.COMUNA !== 'Sin Registro' && d.COMUNA !== '') comMap[d.COMUNA] = (comMap[d.COMUNA] || 0) + d.ASISTENTES; });
+            // TERRITORIO
+            let f1Territorio = obtenerDatosFiltrados('comentadas', 'ninguno');
+            let comMap = {}; f1Territorio.forEach(d => { if (d.COMUNA !== 'Sin Registro' && d.COMUNA !== '') comMap[d.COMUNA] = (comMap[d.COMUNA] || 0) + d.ASISTENTES; });
             let labelsCom = Object.keys(comMap).sort((a,b) => comMap[b] - comMap[a]);
             let coloresCom = labelsCom.map(e => (filtrosGlobales.comuna && filtrosGlobales.comuna !== e) ? '#e0e0e0' : obtenerColorTerritorioBase(e));
             actualizarGraficoHorizontalScroll('comuna', 'chartComuna', 'wrapperComuna', labelsCom, labelsCom.map(e => comMap[e]), coloresCom, 'Asistentes', manejarClicFiltro('comuna'));
-            actualizarMapaGeorreferenciado(f1Secundario);
+            actualizarMapaGeorreferenciado(f1Territorio);
 
-            // 3. MÓDULO 2: RECORRIDOS LIBRES
-            let semTotales = {}; for(let i=1; i<=10; i++) { semTotales[i+'S'] = 0; }
-            f2Secundario.forEach(d => { for(let key in d.SEMUESTRES) { semTotales[key] += d.SEMUESTRES[key]; } });
-            actualizarGraficoConfig('semestres', 'chartSemestres', 'line', Object.keys(semTotales), [{ label: 'Estudiantes', data: Object.values(semTotales), borderColor: '#16a085', tension: 0.2, fill: false }], false, null);
+            // EVALUAR MÓDULO 2 (Solo si está activo)
+            if (modoVisualizacion !== 'SOLO_COMENTADAS') {
+                let f2Secundario = obtenerDatosFiltrados('libres', 'ninguno');
+                let semTotales = {}; for(let i=1; i<=10; i++) { semTotales[i+'S'] = 0; }
+                f2Secundario.forEach(d => { for(let key in d.SEMUESTRES) { semTotales[key] += d.SEMUESTRES[key]; } });
+                actualizarGraficoConfig('semestres', 'chartSemestres', 'line', Object.keys(semTotales), [{ label: 'Estudiantes', data: Object.values(semTotales), borderColor: '#16a085', tension: 0.2, fill: false }], false, null);
 
-            let vincTotales = { 'Estudiantes': 0, 'Docentes': 0, 'Empleados': 0, 'Contratistas': 0, 'Niñ@s': 0, 'Egresados': 0 };
-            f2Secundario.forEach(d => {
-                vincTotales['Estudiantes'] += d.VINCULACION.estudiantes;
-                vincTotales['Docentes'] += d.VINCULACION.docentes;
-                vincTotales['Empleados'] += d.VINCULACION.empleados;
-                vincTotales['Contratistas'] += d.VINCULACION.contratistas;
-                vincTotales['Niñ@s'] += d.VINCULACION.ninos;
-                vincTotales['Egresados'] += (d.VINCULACION.egresadoITM + d.VINCULACION.egresadoLaSalle);
-            });
-            actualizarGraficoConfig('vinculacion', 'chartVinculacion', 'bar', Object.keys(vincTotales), [{ label: 'Cantidad', data: Object.values(vincTotales), backgroundColor: '#d35400', borderRadius: 4 }], false, null);
+                let vincTotales = { 'Estudiantes': 0, 'Docentes': 0, 'Empleados': 0, 'Contratistas': 0, 'Niñ@s': 0, 'Egresados': 0 };
+                f2Secundario.forEach(d => {
+                    vincTotales['Estudiantes'] += d.VINCULACION.estudiantes; vincTotales['Docentes'] += d.VINCULACION.docentes;
+                    vincTotales['Empleados'] += d.VINCULACION.empleados; vincTotales['Contratistas'] += d.VINCULACION.contratistas;
+                    vincTotales['Niñ@s'] += d.VINCULACION.ninos; vincTotales['Egresados'] += (d.VINCULACION.egresadoITM + d.VINCULACION.egresadoLaSalle);
+                });
+                actualizarGraficoConfig('vinculacion', 'chartVinculacion', 'bar', Object.keys(vincTotales), [{ label: 'Cantidad', data: Object.values(vincTotales), backgroundColor: '#e67c73', borderRadius: 4 }], false, null);
 
-            // Gráfica de Procedencia (AHORA CORREGIDA PARA LAS NUEVAS COLUMNAS)
-            let proTotales = { 'Comunidad ITM': 0, 'Externos': 0 };
-            f2Secundario.forEach(d => {
-                proTotales['Comunidad ITM'] += d.PROCEDENCIA.comunidadITM;
-                proTotales['Externos'] += d.PROCEDENCIA.externos;
-            });
-            // Verde institucional para ITM, Gris para Externos
-            actualizarGraficoPie('procedencia', 'chartProcedencia', Object.keys(proTotales), Object.values(proTotales), ['#27ae60', '#bdc3c7']);
+                let proTotales = { 'Comunidad ITM': 0, 'Externos': 0 };
+                f2Secundario.forEach(d => { proTotales['Comunidad ITM'] += d.PROCEDENCIA.comunidadITM; proTotales['Externos'] += d.PROCEDENCIA.externos; });
+                actualizarGraficoPie('procedencia', 'chartProcedencia', Object.keys(proTotales), Object.values(proTotales), ['#27ae60', '#bdc3c7']);
+            }
         }
 
         function actualizarMapaGeorreferenciado(datosMapear) {
@@ -410,17 +450,33 @@
             else { graficos[idGrafico] = new Chart(ctx, { type: 'bar', data: { labels: etiquetas, datasets: [{ label: labelDataset, data: valores, backgroundColor: arrayColores, borderRadius: 4 }] }, options: ops }); }
         }
 
+        // NUEVO: Motor de cálculo automático de porcentajes integrado para Donas
         function actualizarGraficoPie(idGrafico, idCanvas, etiquetas, valores, colores) {
             const ctx = document.getElementById(idCanvas).getContext('2d');
             if (valores.every(v => v === 0)) valores = [];
+            let opcionesPie = { 
+                responsive: true, maintainAspectRatio: false, 
+                plugins: { 
+                    datalabels: { 
+                        color: '#fff', font: { size: 12, weight: 'bold' }, anchor: 'center', align: 'center',
+                        formatter: (value, context) => {
+                            let suma = context.chart.data.datasets[0].data.reduce((a, b) => a + b, 0);
+                            if (suma === 0) return '';
+                            let pct = ((value * 100) / suma).toFixed(1) + '%';
+                            return value > 0 ? value.toLocaleString() + '\n(' + pct + ')' : '';
+                        }
+                    } 
+                } 
+            };
             if (graficos[idGrafico]) { graficos[idGrafico].data.datasets[0].data = valores; graficos[idGrafico].update(); } 
-            else { graficos[idGrafico] = new Chart(ctx, { type: 'doughnut', data: { labels: etiquetas, datasets: [{ data: valores, backgroundColor: colores }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { datalabels: { color: '#fff', font: { size: 13, weight: 'bold' }, anchor: 'center', align: 'center' } } } }); }
+            else { graficos[idGrafico] = new Chart(ctx, { type: 'doughnut', data: { labels: etiquetas, datasets: [{ data: valores, backgroundColor: colores }] }, options: opcionesPie }); }
         }
 
         function resetearFiltros() { 
             filtrosGlobales = { mes: null, comuna: null, edad: null, descriptor: null };
             document.getElementById('selectorAnio').value = "TODOS";
             document.getElementById('selectorTipo').value = "TODOS";
+            document.getElementById('selectorVerFuentes').value = "AMBOS";
             procesarDatos(); 
         }
     </script>
