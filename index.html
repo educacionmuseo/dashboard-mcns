@@ -3,100 +3,546 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard MCNS | Ecosistema Integral V11.6</title>
+    <title>Dashboard MCNS | Ecosistema Integral V11.4</title>
+    
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.0.0"></script>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
     <style>
-        body { font-family: 'Segoe UI', sans-serif; background-color: #eef2f5; margin: 0; padding: 20px; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #eef2f5; color: #333; margin: 0; padding: 20px; }
+        
         .header { background: white; padding: 20px; border-radius: 10px; margin-bottom: 20px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
+        .header-top { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; margin-bottom: 15px; }
+        
+        .controles { display: flex; gap: 15px; align-items: center; flex-wrap: wrap; }
+        .controles select { padding: 8px 12px; font-size: 15px; border-radius: 5px; border: 1px solid #ccc; cursor: pointer; background: #fdfdfd; }
+        .btn-reset { padding: 10px 15px; cursor:pointer; background:#e74c3c; color:white; border:none; border-radius:5px; font-weight:bold; transition: background 0.3s; }
+        .btn-reset:hover { background: #c0392b; }
+
+        /* Panel de Interruptores Múltiples */
+        .filtros-multiples { display: flex; flex-wrap: wrap; gap: 10px; padding-top: 15px; border-top: 1px solid #eee; }
+        .chk-item { display: flex; align-items: center; gap: 5px; background: #f8f9fa; padding: 6px 12px; border-radius: 20px; border: 1px solid #ddd; cursor: pointer; font-size: 0.9em; transition: 0.2s; user-select: none; }
+        .chk-item:hover { background: #e9ecef; }
+        .chk-item input { cursor: pointer; }
+        .chk-titulo { font-weight: bold; margin-right: 10px; color: #2c3e50; display: flex; align-items: center; }
+
         .kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px; margin-bottom: 20px; }
-        .kpi-card { background: white; padding: 20px; border-radius: 10px; border-left: 5px solid #ccc; }
+        .kpi-card { background: white; padding: 20px; border-radius: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); border-left: 5px solid #ccc; display: flex; flex-direction: column; justify-content: space-between; }
+        .kpi-card h4 { margin: 0 0 5px 0; color: #2c3e50; font-size: 0.9em; text-transform: uppercase; letter-spacing: 0.5px; }
+        .kpi-contexto { font-size: 0.75em; color: #7f8c8d; margin-bottom: 10px; min-height: 15px; font-style: italic; }
+        .kpi-valor { font-size: 2.2em; font-weight: bold; color: #2c3e50; }
+        
+        .border-comentadas { border-left-color: #2980b9; }
+        .border-libres { border-left-color: #e67c73; }
+        .border-total { border-left-color: #2c3e50; }
+
+        .kpi-barra-proporcion { display: flex; height: 10px; width: 100%; background: #eee; border-radius: 5px; margin-top: 15px; overflow: hidden; }
+        .kpi-barra-proporcion div { height: 100%; transition: width 0.4s ease; }
+
         .dashboard-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px; margin-bottom: 30px; }
-        .panel { background: white; padding: 20px; border-radius: 10px; }
-        .contenedor-grafico-principal { height: 400px; width: 100%; }
-        .contenedor-grafico-secundario { height: 300px; width: 100%; }
-        h2.seccion-titulo { margin: 40px 0 20px 0; border-top: 2px solid #ddd; padding-top: 20px; text-align: center; }
+        .panel { background: white; padding: 20px; border-radius: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
+        .panel-principal { grid-column: 1 / -1; display: flex; flex-direction: column; align-items: center; }
+        
+        .contenedor-grafico-principal { position: relative; width: 100%; max-width: 1000px; height: 400px; }
+        .contenedor-grafico-secundario { position: relative; width: 100%; height: 300px; }
+        
+        .layout-territorial { display: grid; grid-template-columns: 2fr 1fr; gap: 20px; margin-bottom: 30px; }
+        .layout-territorial > .panel { min-width: 0; }
+        @media (max-width: 1000px) { .layout-territorial { grid-template-columns: 1fr; } }
+
+        #mapaMedellin { width: 100%; height: 600px; border-radius: 8px; z-index: 1; border: 1px solid #ddd; }
+        
+        .contenedor-scroll-externo { width: 100%; overflow-y: auto; overflow-x: hidden; border: 1px solid #eee; border-radius: 8px; padding-right: 5px; background: #fafafa; }
+        .contenedor-scroll-interno { position: relative; width: 100%; }
+        .alto-mapa { height: 600px; }
+        .alto-panel { height: 300px; } 
+
+        h2.seccion-titulo { text-align: center; color: #2c3e50; margin: 40px 0 20px 0; border-top: 2px solid #ddd; padding-top: 20px; }
+        h3 { text-align: center; color: #2c3e50; font-size: 0.9em; margin-top: 0; margin-bottom: 15px; text-transform: uppercase; }
+        .instruccion { text-align: center; font-size: 0.85em; color: #7f8c8d; margin-bottom: 15px; }
+        
+        .leyenda-colores { display: flex; justify-content: center; gap: 20px; margin-bottom: 20px; font-size: 0.9em; flex-wrap: wrap; }
+        .dot { height: 12px; width: 12px; border-radius: 50%; display: inline-block; margin-right: 5px; vertical-align: middle;}
     </style>
 </head>
 <body>
+
     <div class="header">
-        <h2>📊 Ecosistema Integral MCNS | V11.6</h2>
+        <div class="header-top">
+            <h2>📊 Ecosistema Integral MCNS | V11.4</h2>
+            <div class="controles">
+                <div>
+                    <label for="selectorAnio"><strong>Año: </strong></label>
+                    <select id="selectorAnio" onchange="procesarDatos()">
+                        <option value="TODOS">Todos los años</option>
+                    </select>
+                </div>
+                <button class="btn-reset" onclick="resetearFiltros()">Limpiar Filtros Mensuales</button>
+            </div>
+        </div>
+        
         <div class="filtros-multiples">
-            <label><input type="checkbox" id="chkComentadas" checked onchange="procesarDatos()"> Visitas Comentadas</label>
-            <label><input type="checkbox" id="chkLibres" checked onchange="procesarDatos()"> Recorridos Libres</label>
+            <div class="chk-titulo">⚙️ Filtro de Áreas:</div>
+            <label class="chk-item"><input type="checkbox" id="chkComentadas" checked onchange="procesarDatos()"> Visitas Comentadas</label>
+            <label class="chk-item"><input type="checkbox" id="chkLibres" checked onchange="procesarDatos()"> Recorridos Libres</label>
+            <label class="chk-item"><input type="checkbox" id="chkInauguraciones" checked onchange="procesarDatos()"> Inauguraciones</label>
+            <label class="chk-item"><input type="checkbox" id="chkAECC" checked onchange="procesarDatos()"> Eventos AECC</label>
+            <label class="chk-item"><input type="checkbox" id="chkOA" checked onchange="procesarDatos()"> Visitas OA</label>
+            <label class="chk-item"><input type="checkbox" id="chkRef" checked onchange="procesarDatos()"> Visitas Referencia</label>
+            <label class="chk-item"><input type="checkbox" id="chkSemilleros" checked onchange="procesarDatos()"> Semilleros</label>
         </div>
     </div>
 
     <div class="kpi-grid">
-        <div class="kpi-card border-comentadas"><h4>Total Visitas Comentadas</h4><div class="kpi-valor" id="kpiComentadas">0</div></div>
-        <div class="kpi-card border-libres"><h4>Total Recorridos Libres</h4><div class="kpi-valor" id="kpiLibres">0</div></div>
+        <div class="kpi-card border-comentadas">
+            <h4>Total Beneficiados<br><b>Visitas Comentadas (Puras)</b></h4>
+            <div class="kpi-contexto" id="contextoComentadas">Cargando...</div>
+            <div class="kpi-valor" id="kpiComentadas">0</div>
+        </div>
+        <div class="kpi-card border-libres" id="kpiCardLibres">
+            <h4>Total Beneficiados<br><b>Recorridos Libres</b></h4>
+            <div class="kpi-contexto" id="contextoLibres">Cargando...</div>
+            <div class="kpi-valor" id="kpiLibres">0</div>
+        </div>
+        <div class="kpi-card border-total">
+            <h4>Población Atendida<br><b>(Total Áreas Seleccionadas)</b></h4>
+            <div class="kpi-contexto" id="contextoGeneral">Cargando...</div>
+            <div class="kpi-valor" id="kpiTotalGeneral">0</div>
+            <div class="kpi-barra-proporcion" id="kpiBarraContenedor">
+                <div id="segComentadas" style="background: #2980b9; width: 0%;" title="Visitas Comentadas"></div>
+                <div id="segLibres" style="background: #e67c73; width: 0%;" title="Recorridos Libres"></div>
+                <div id="segInauguraciones" style="background: #8e44ad; width: 0%;" title="Inauguraciones"></div>
+                <div id="segAECC" style="background: #16a085; width: 0%;" title="AECC"></div>
+                <div id="segOA" style="background: #27ae60; width: 0%;" title="Visitas OA"></div>
+                <div id="segRef" style="background: #34495e; width: 0%;" title="Referencia"></div>
+                <div id="segSemilleros" style="background: #d35400; width: 0%;" title="Semilleros"></div>
+            </div>
+        </div>
     </div>
 
-    <div class="panel" style="margin-bottom: 20px;">
+    <div class="panel panel-principal" id="panelEcosistemaMacro" style="margin-bottom: 20px;">
+        <h3>COMPARATIVO TOTALES MCNS</h3>
+        <div class="contenedor-grafico-principal"><canvas id="chartEcosistema"></canvas></div>
+    </div>
+
+    <div class="panel panel-principal" style="margin-bottom: 20px;">
         <h3>EVOLUCIÓN MENSUAL COMPARATIVA</h3>
+        <p class="instruccion">👆 Clic en las barras de los meses para filtrar de manera cruzada toda la interfaz</p>
         <div class="contenedor-grafico-principal"><canvas id="chartAsistentes"></canvas></div>
     </div>
 
     <div id="bloqueModuloComentadas">
-        <h2 class="seccion-titulo">🗣️ Módulo 1: Visitas Comentadas</h2>
+        <h2 class="seccion-titulo">🗣️ Módulo 1: Visitas Comentadas (Purificadas)</h2>
         <div class="dashboard-grid">
-            <div class="panel"><h3>GRUPOS</h3><canvas id="chartGrupos"></canvas></div>
-            <div class="panel"><h3>EDAD</h3><canvas id="chartEdad"></canvas></div>
-            <div class="panel"><h3>GÉNERO</h3><canvas id="chartGenero"></canvas></div>
-            <div class="panel"><h3>DESCRIPTOR</h3><canvas id="chartDescriptor"></canvas></div>
+            <div class="panel">
+                <h3>GRUPOS POR INSTITUCIÓN</h3>
+                <div class="contenedor-grafico-secundario"><canvas id="chartGrupos"></canvas></div>
+            </div>
+            <div class="panel">
+                <h3>ASISTENTES POR EDAD</h3>
+                <div class="contenedor-grafico-secundario"><canvas id="chartEdad"></canvas></div>
+            </div>
+            <div class="panel">
+                <h3>GÉNERO (M vs F)</h3>
+                <div class="contenedor-grafico-secundario"><canvas id="chartGenero"></canvas></div>
+            </div>
+            <div class="panel">
+                <h3>DESCRIPTOR DE GRUPO</h3>
+                <div class="contenedor-scroll-externo alto-panel">
+                    <div class="contenedor-scroll-interno" id="wrapperDescriptor">
+                        <canvas id="chartDescriptor"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <h2 class="seccion-titulo" id="tituloMapa">🌍 Análisis Territorial (Visitas Comentadas Puras)</h2>
+        <div class="leyenda-colores" id="leyendaMapa">
+            <div><span class="dot" style="background-color: #27ae60;"></span> ITM</div>
+            <div><span class="dot" style="background-color: #2980b9;"></span> Medellín (Comunas/Corregimientos)</div>
+            <div><span class="dot" style="background-color: #7f8c8d;"></span> Otros Municipios</div>
+        </div>
+        <div class="layout-territorial" id="bloqueMapa">
+            <div class="panel" style="padding: 15px;">
+                <h3>MAPA DE PROCEDENCIA INSTITUCIONAL</h3>
+                <div id="mapaMedellin"></div>
+            </div>
+            <div class="panel" style="padding: 15px;">
+                <h3>ZONA / COMUNA</h3>
+                <div class="contenedor-scroll-externo alto-mapa">
+                    <div class="contenedor-scroll-interno" id="wrapperComuna">
+                        <canvas id="chartComuna"></canvas>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 
     <div id="bloqueModuloLibres">
-        <h2 class="seccion-titulo">🚶 Módulo 2: Recorridos Libres</h2>
+        <h2 class="seccion-titulo">🚶 Módulo 2: Perfil de Visitantes en Recorridos Libres</h2>
         <div class="dashboard-grid">
-            <div class="panel"><h3>VINCULACIÓN</h3><canvas id="chartVinculacion"></canvas></div>
-            <div class="panel"><h3>PROCEDENCIA</h3><canvas id="chartProcedencia"></canvas></div>
+            <div class="panel" style="grid-column: span 2;">
+                <h3>EVOLUCIÓN ACADÉMICA (Estudiantes por Semestre)</h3>
+                <div class="contenedor-grafico-secundario"><canvas id="chartSemestres"></canvas></div>
+            </div>
+            <div class="panel">
+                <h3>VINCULACIÓN INSTITUCIONAL</h3>
+                <div class="contenedor-grafico-secundario"><canvas id="chartVinculacion"></canvas></div>
+            </div>
+            <div class="panel">
+                <h3>PROCEDENCIA GLOBAL</h3>
+                <div class="contenedor-grafico-secundario"><canvas id="chartProcedencia"></canvas></div>
+            </div>
         </div>
     </div>
 
     <script>
+        Chart.register(ChartDataLabels);
+        Chart.defaults.set('plugins.datalabels', { color: '#2c3e50', anchor: 'end', align: 'top', font: { weight: 'bold', size: 10 }, formatter: (value) => { return value > 0 ? value : ''; } });
+
         const urlComentadas = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vS7f26O3sj6abtatPWdf3wa4hdGxMI5gjOZU--SYrJ92jTxZ9Ch6LrTESm_XjWeIRFTrnKJq-c2aed9/pub?output=csv';
         const urlLibres = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSx-9TxdT25K0DSLKTO4YMhWsH0aXkRvMn1Smzj42pfjwEmYgdkhvJyrDQKkxAI8Q/pub?output=csv';
+        const urlEcosistema = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQN5V0ttwuJCHXZpxPdGB3BF33FTA57wWSycgmWTWdA6DHFx6yOaAZR4ZgzWDXlZwgmNeN1vUjGnS6_/pub?output=csv';
+
+        let datosComentadas = []; let datosLibres = []; let datosEcosistema = []; 
+        let aniosDetectados = new Set(); 
+        let filtrosGlobales = { mes: null, comuna: null, edad: null, descriptor: null };
+        let graficos = {};
+        const mesesOrden = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
         
-        let datosC=[], datosL=[];
-        async function init() {
-            const [r1, r2] = await Promise.all([fetch(urlComentadas).then(r=>r.text()), fetch(urlLibres).then(r=>r.text())]);
-            datosC = Papa.parse(r1, {header:true, dynamicTyping:true}).data.filter(d=>d.MES);
-            datosL = Papa.parse(r2, {header:true, dynamicTyping:true}).data.filter(d=>d.MES);
-            procesarDatos();
+        const colorCom = '#2980b9'; const colorLib = '#e67c73'; const colorInaug = '#8e44ad';
+        const colorAECC = '#16a085'; const colorOA = '#27ae60'; const colorRef = '#34495e'; const colorSem = '#d35400';
+
+        let mapaInstancia = null; let capaMarcadores = null;
+
+        function obtenerColorTerritorioBase(nombreComuna) {
+            let texto = String(nombreComuna).toUpperCase().trim();
+            if (texto.startsWith('ITM')) return '#27ae60';
+            if (texto.startsWith('COMUNA') || texto.startsWith('CORREGIMIENTO')) return '#2980b9';
+            return '#7f8c8d'; 
+        }
+
+        function descargarCSV(url) {
+            return new Promise((resolve, reject) => {
+                Papa.parse(url, { download: true, header: true, dynamicTyping: true, complete: (resultado) => resolve(resultado.data), error: (error) => reject(error) });
+            });
+        }
+
+        Promise.all([descargarCSV(urlComentadas), descargarCSV(urlLibres), descargarCSV(urlEcosistema)]).then(([csvComentadas, csvLibres, csvEcosistema]) => {
+            
+            datosComentadas = csvComentadas.map(fila => {
+                let mesLimpio = "Desconocido"; let anioStr = "Desconocido";
+                if (fila['MES']) mesLimpio = String(fila['MES']).toLowerCase().split('-')[0].trim();
+                if (fila['FECHA']) { let match = String(fila['FECHA']).match(/\d{4}/); if (match) { anioStr = match[0]; aniosDetectados.add(anioStr); } }
+                let mVal = 0; let fVal = 0;
+                for (let k in fila) { if (k.trim() === 'M') mVal = parseInt(fila[k]) || 0; if (k.trim() === 'F') fVal = parseInt(fila[k]) || 0; }
+                let descriptor = fila['DESCRIPTOR DE GRUPO'] ? String(fila['DESCRIPTOR DE GRUPO']).trim() : 'Sin Registro';
+                let esInauguracion = (descriptor.toLowerCase() === 'inauguración');
+                let latStr = String(fila['LATITUD'] || '').replace(',', '.'); let lonStr = String(fila['LONGITUD'] || '').replace(',', '.');
+                return {
+                    MES_LIMPIO: mesLimpio, ANIO: anioStr, ASISTENTES: parseInt(fila['NÚMERO TOTAL DE PERSONAS ASISTENTES']) || 0,
+                    GRUPOS: parseInt(fila['NÚMERO DE GRUPOS POR INSTITUCIÓN U ORGANIZACIÓN COMUNITARIA']) || 0, M: mVal, F: fVal,
+                    EDAD: fila['RANGO DE EDAD'] ? String(fila['RANGO DE EDAD']).trim() : 'Sin clasificar',
+                    COMUNA: fila['Comuna'] ? String(fila['Comuna']).trim() : 'Sin Registro',
+                    LAT: parseFloat(latStr), LON: parseFloat(lonStr),
+                    DESCRIPTOR: descriptor, ES_INAUGURACION: esInauguracion
+                };
+            }).filter(d => d.ASISTENTES > 0 || d.GRUPOS > 0);
+
+            datosLibres = csvLibres.map(fila => {
+                let mesLimpio = "Desconocido"; let anioStr = "Desconocido";
+                if (fila['MES']) mesLimpio = String(fila['MES']).toLowerCase().split('-')[0].trim();
+                if (fila['FECHA']) { let match = String(fila['FECHA']).match(/\d{4}/); if (match) { anioStr = match[0]; aniosDetectados.add(anioStr); } }
+                let semestres = {}; for(let i=1; i<=10; i++) { semestres[i+'S'] = 0; }
+                let docentes = 0; let empleados = 0; let contratistas = 0; let ninos = 0; let egresadoITM = 0; let egresadoLaSalle = 0; let estudiantes = 0;
+                let comunidadITM = 0; let externos = 0;
+                for (let k in fila) {
+                    let keyNorm = k.trim();
+                    if (/^\d+S$/.test(keyNorm)) semestres[keyNorm] = parseInt(fila[k]) || 0;
+                    if (keyNorm === 'Docentes') docentes = parseInt(fila[k]) || 0;
+                    if (keyNorm === 'Empleados') empleados = parseInt(fila[k]) || 0;
+                    if (keyNorm === 'Contratistas') contratistas = parseInt(fila[k]) || 0;
+                    if (keyNorm.startsWith('Niñ')) ninos = parseInt(fila[k]) || 0;
+                    if (keyNorm === 'Egresado ITM' || keyNorm === 'Egresado') egresadoITM = parseInt(fila[k]) || 0;
+                    if (keyNorm === 'EgresadoLa Salle' || keyNorm === 'Egresado La Salle') egresadoLaSalle = parseInt(fila[k]) || 0;
+                    if (keyNorm === 'Estudiantes') estudiantes = parseInt(fila[k]) || 0;
+                    if (keyNorm === 'COMUNIDAD ITM') comunidadITM = parseInt(fila[k]) || 0;
+                    if (keyNorm === 'EXTERNOS') externos = parseInt(fila[k]) || 0;
+                }
+                return {
+                    MES_LIMPIO: mesLimpio, ANIO: anioStr, VISITAS_LIBRES: parseInt(fila['CANTIDAD DE VISITAS']) || 0, SEMUESTRES: semestres,
+                    VINCULACION: { docentes, empleados, contratistas, ninos, egresadoITM, egresadoLaSalle, estudiantes }, PROCEDENCIA: { comunidadITM, externos }
+                };
+            }).filter(d => d.VISITAS_LIBRES > 0);
+
+            datosEcosistema = csvEcosistema.map(fila => {
+                let mesLimpio = fila['Mes'] ? String(fila['Mes']).toLowerCase().trim() : 'desconocido';
+                let anioStr = fila['Año'] ? String(fila['Año']).trim() : 'desconocido';
+                if (anioStr !== 'desconocido') aniosDetectados.add(anioStr);
+                return {
+                    MES_LIMPIO: mesLimpio, ANIO: anioStr,
+                    AECC: parseInt(fila['Eventos MCNS_OA y ACC']) || parseInt(fila['Eventos MCNS_OA y AECC']) || 0,
+                    REF: parseInt(fila['Visitas Referencia (Solo R)']) || 0,
+                    OA: parseInt(fila['Visitas OA (Solo OA)']) || 0,
+                    SEM: parseInt(fila['Participantes Semilleros MCNS']) || 0
+                };
+            });
+
+            llenarSelectorAnios(); inicializarMapa(); procesarDatos();
+        }).catch(err => console.error("Error cargando fuentes:", err));
+
+        function llenarSelectorAnios() {
+            const selector = document.getElementById('selectorAnio');
+            Array.from(aniosDetectados).sort().forEach(anio => { let opcion = document.createElement('option'); opcion.value = anio; opcion.text = "Año " + anio; selector.appendChild(opcion); });
+        }
+
+        function inicializarMapa() {
+            mapaInstancia = L.map('mapaMedellin').setView([6.2600, -75.5800], 12);
+            L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', { attribution: '&copy; OpenStreetMap &copy; CARTO' }).addTo(mapaInstancia);
+            capaMarcadores = L.layerGroup().addTo(mapaInstancia);
+        }
+
+        function getFuentesActivas() {
+            return {
+                comentadas: document.getElementById('chkComentadas').checked,
+                libres: document.getElementById('chkLibres').checked,
+                inauguraciones: document.getElementById('chkInauguraciones').checked,
+                aecc: document.getElementById('chkAECC').checked,
+                oa: document.getElementById('chkOA').checked,
+                ref: document.getElementById('chkRef').checked,
+                semilleros: document.getElementById('chkSemilleros').checked
+            };
+        }
+
+        function actualizarTextosContexto() {
+            const anioElegido = document.getElementById('selectorAnio').value;
+            let arrayAnios = Array.from(aniosDetectados).sort();
+            let textoBaseAnio = (anioElegido === "TODOS" && arrayAnios.length > 0) ? `Histórico (${arrayAnios[0]} - ${arrayAnios[arrayAnios.length-1]})` : `Año: ${anioElegido}`;
+            
+            let fCom = [];
+            if (filtrosGlobales.mes) fCom.push(`Mes: ${filtrosGlobales.mes}`);
+            if (filtrosGlobales.comuna) fCom.push(filtrosGlobales.comuna);
+            if (filtrosGlobales.edad) fCom.push(filtrosGlobales.edad);
+            if (filtrosGlobales.descriptor) fCom.push(filtrosGlobales.descriptor);
+            
+            document.getElementById('contextoComentadas').innerText = textoBaseAnio + (fCom.length > 0 ? ` | ` + fCom.join(' | ') : '');
+            document.getElementById('contextoLibres').innerText = textoBaseAnio + (filtrosGlobales.mes ? ` | Mes: ${filtrosGlobales.mes}` : '');
+            document.getElementById('contextoGeneral').innerText = textoBaseAnio + (filtrosGlobales.mes ? ` | Mes: ${filtrosGlobales.mes}` : '');
         }
 
         function procesarDatos() {
-            const meses = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
-            const act = { c: document.getElementById('chkComentadas').checked, l: document.getElementById('chkLibres').checked };
-            
-            // Cálculos
-            let dataC = meses.map(m => datosC.filter(d=>String(d.MES).toLowerCase().includes(m)).reduce((s,d)=>s+(parseInt(d['NÚMERO TOTAL DE PERSONAS ASISTENTES'])||0), 0));
-            let dataL = meses.map(m => datosL.filter(d=>String(d.MES).toLowerCase().includes(m)).reduce((s,d)=>s+(parseInt(d['CANTIDAD DE VISITAS'])||0), 0));
-            
-            // Gráfico Principal
-            new Chart(document.getElementById('chartAsistentes'), {
-                type: 'bar',
-                data: { labels: meses, datasets: [
-                    act.c ? {label:'Visitas Comentadas', data: dataC, backgroundColor:'#2980b9'} : null,
-                    act.l ? {label:'Recorridos Libres', data: dataL, backgroundColor:'#e67c73'} : null
-                ].filter(d=>d) },
-                options: { responsive:true, maintainAspectRatio:false }
-            });
+            try {
+                const activas = getFuentesActivas();
+                const anioElegido = document.getElementById('selectorAnio').value;
+                actualizarTextosContexto();
 
-            // KPIs
-            document.getElementById('kpiComentadas').innerText = dataC.reduce((a,b)=>a+b, 0).toLocaleString();
-            document.getElementById('kpiLibres').innerText = dataL.reduce((a,b)=>a+b, 0).toLocaleString();
-            
-            // Mostrar/Ocultar Módulos
-            document.getElementById('bloqueModuloComentadas').style.display = act.c ? 'block' : 'none';
-            document.getElementById('bloqueModuloLibres').style.display = act.l ? 'block' : 'none';
+                let f1Base = (anioElegido === "TODOS") ? datosComentadas : datosComentadas.filter(d => d.ANIO === anioElegido);
+                let f2Base = (anioElegido === "TODOS") ? datosLibres : datosLibres.filter(d => d.ANIO === anioElegido);
+                let f3Base = (anioElegido === "TODOS") ? datosEcosistema : datosEcosistema.filter(d => d.ANIO === anioElegido);
+
+                let f1Total = f1Base; let f2Total = f2Base; let f3Total = f3Base;
+                if (filtrosGlobales.mes) {
+                    f1Total = f1Total.filter(d => d.MES_LIMPIO === filtrosGlobales.mes);
+                    f2Total = f2Total.filter(d => d.MES_LIMPIO === filtrosGlobales.mes);
+                    f3Total = f3Total.filter(d => d.MES_LIMPIO === filtrosGlobales.mes);
+                }
+
+                let sumComentadasPuras = activas.comentadas ? f1Total.filter(d => !d.ES_INAUGURACION).reduce((s, d) => s + d.ASISTENTES, 0) : 0;
+                let sumInauguraciones = activas.inauguraciones ? f1Total.filter(d => d.ES_INAUGURACION).reduce((s, d) => s + d.ASISTENTES, 0) : 0;
+                let sumLibres = activas.libres ? f2Total.reduce((s, d) => s + d.VISITAS_LIBRES, 0) : 0;
+                let sumAECC = activas.aecc ? f3Total.reduce((s, d) => s + d.AECC, 0) : 0;
+                let sumOA = activas.oa ? f3Total.reduce((s, d) => s + d.OA, 0) : 0;
+                let sumRef = activas.ref ? f3Total.reduce((s, d) => s + d.REF, 0) : 0;
+                let sumSem = activas.semilleros ? f3Total.reduce((s, d) => s + d.SEM, 0) : 0;
+
+                let sumGeneral = sumComentadasPuras + sumLibres + sumInauguraciones + sumAECC + sumOA + sumRef + sumSem;
+
+                document.getElementById('kpiComentadas').innerText = sumComentadasPuras.toLocaleString();
+                document.getElementById('kpiLibres').innerText = sumLibres.toLocaleString();
+                document.getElementById('kpiTotalGeneral').innerText = sumGeneral.toLocaleString();
+
+                let calcPct = (val) => sumGeneral > 0 ? (val / sumGeneral) * 100 : 0;
+                document.getElementById('segComentadas').style.width = calcPct(sumComentadasPuras) + '%';
+                document.getElementById('segLibres').style.width = calcPct(sumLibres) + '%';
+                document.getElementById('segInauguraciones').style.width = calcPct(sumInauguraciones) + '%';
+                document.getElementById('segAECC').style.width = calcPct(sumAECC) + '%';
+                document.getElementById('segOA').style.width = calcPct(sumOA) + '%';
+                document.getElementById('segRef').style.width = calcPct(sumRef) + '%';
+                document.getElementById('segSemilleros').style.width = calcPct(sumSem) + '%';
+
+                document.getElementById('bloqueModuloComentadas').style.display = activas.comentadas ? 'block' : 'none';
+                document.getElementById('bloqueModuloLibres').style.display = activas.libres ? 'block' : 'none';
+
+                let etiquetasEco = []; let valoresEco = []; let coloresEco = [];
+                if(activas.comentadas) { etiquetasEco.push('Visitas Comentadas'); valoresEco.push(sumComentadasPuras); coloresEco.push(colorCom); }
+                if(activas.libres) { etiquetasEco.push('Recorridos Libres'); valoresEco.push(sumLibres); coloresEco.push(colorLib); }
+                if(activas.inauguraciones) { etiquetasEco.push('Inauguraciones'); valoresEco.push(sumInauguraciones); coloresEco.push(colorInaug); }
+                if(activas.aecc) { etiquetasEco.push('Eventos AECC'); valoresEco.push(sumAECC); coloresEco.push(colorAECC); }
+                if(activas.oa) { etiquetasEco.push('Visitas OA'); valoresEco.push(sumOA); coloresEco.push(colorOA); }
+                if(activas.ref) { etiquetasEco.push('Visitas Referencia'); valoresEco.push(sumRef); coloresEco.push(colorRef); }
+                if(activas.semilleros) { etiquetasEco.push('Semilleros'); valoresEco.push(sumSem); coloresEco.push(colorSem); }
+                
+                actualizarGraficoConfig('ecosistema', 'chartEcosistema', 'bar', etiquetasEco, [{ data: valoresEco, backgroundColor: coloresEco, borderRadius: 4 }], false, null, false, true);
+
+                let datasetsMensuales = [];
+                if(activas.comentadas) datasetsMensuales.push({ label: 'Visitas Comentadas', data: mesesOrden.map(m => f1Base.filter(d => !d.ES_INAUGURACION && d.MES_LIMPIO === m).reduce((s, d) => s + d.ASISTENTES, 0)), backgroundColor: colorCom, borderRadius: 4 });
+                if(activas.libres) datasetsMensuales.push({ label: 'Recorridos Libres', data: mesesOrden.map(m => f2Base.filter(d => d.MES_LIMPIO === m).reduce((s, d) => s + d.VISITAS_LIBRES, 0)), backgroundColor: colorLib, borderRadius: 4 });
+                if(activas.inauguraciones) datasetsMensuales.push({ label: 'Inauguraciones', data: mesesOrden.map(m => f1Base.filter(d => d.ES_INAUGURACION && d.MES_LIMPIO === m).reduce((s, d) => s + d.ASISTENTES, 0)), backgroundColor: colorInaug, borderRadius: 4 });
+                if(activas.aecc) datasetsMensuales.push({ label: 'Eventos AECC', data: mesesOrden.map(m => f3Base.filter(d => d.MES_LIMPIO === m).reduce((s, d) => s + d.AECC, 0)), backgroundColor: colorAECC, borderRadius: 4 });
+                if(activas.oa) datasetsMensuales.push({ label: 'Visitas OA', data: mesesOrden.map(m => f3Base.filter(d => d.MES_LIMPIO === m).reduce((s, d) => s + d.OA, 0)), backgroundColor: colorOA, borderRadius: 4 });
+                if(activas.ref) datasetsMensuales.push({ label: 'Visitas Referencia', data: mesesOrden.map(m => f3Base.filter(d => d.MES_LIMPIO === m).reduce((s, d) => s + d.REF, 0)), backgroundColor: colorRef, borderRadius: 4 });
+                if(activas.semilleros) datasetsMensuales.push({ label: 'Semilleros', data: mesesOrden.map(m => f3Base.filter(d => d.MES_LIMPIO === m).reduce((s, d) => s + d.SEM, 0)), backgroundColor: colorSem, borderRadius: 4 });
+                
+                if (filtrosGlobales.mes) { datasetsMensuales.forEach(ds => { ds.backgroundColor = mesesOrden.map(m => m === filtrosGlobales.mes ? ds.backgroundColor : '#e0e0e0'); }); }
+                
+                // NOTA DE ACTUALIZACIÓN: El último parámetro "false" desactiva el apilamiento (stacked) y permite que se vean agrupadas (side-by-side)
+                actualizarGraficoConfig('asistentes', 'chartAsistentes', 'bar', mesesOrden, datasetsMensuales, true, manejarClicFiltro('mes'), false);
+
+                if (activas.comentadas) {
+                    let f1Mod1 = f1Base.filter(d => !d.ES_INAUGURACION);
+                    if (filtrosGlobales.mes) f1Mod1 = f1Mod1.filter(d => d.MES_LIMPIO === filtrosGlobales.mes);
+                    if (filtrosGlobales.comuna) f1Mod1 = f1Mod1.filter(d => d.COMUNA === filtrosGlobales.comuna);
+                    if (filtrosGlobales.edad) f1Mod1 = f1Mod1.filter(d => d.EDAD === filtrosGlobales.edad);
+                    if (filtrosGlobales.descriptor) f1Mod1 = f1Mod1.filter(d => d.DESCRIPTOR === filtrosGlobales.descriptor);
+
+                    let gruposMes = mesesOrden.map(m => f1Mod1.filter(d => d.MES_LIMPIO === m).reduce((s, d) => s + d.GRUPOS, 0));
+                    actualizarGraficoBasico('grupos', 'chartGrupos', 'bar', mesesOrden, gruposMes, '#7f8c8d', 'Grupos', null);
+
+                    let edadMap = {}; f1Mod1.forEach(d => { if (d.EDAD !== 'Sin clasificar') edadMap[d.EDAD] = (edadMap[d.EDAD] || 0) + d.ASISTENTES; });
+                    let labelsEdad = Object.keys(edadMap).sort();
+                    let coloresEdad = labelsEdad.map(e => (filtrosGlobales.edad && filtrosGlobales.edad !== e) ? '#e0e0e0' : colorCom);
+                    actualizarGraficoBasico('edad', 'chartEdad', 'bar', labelsEdad, labelsEdad.map(e => edadMap[e]), coloresEdad, 'Asistentes', manejarClicFiltro('edad'));
+
+                    let totalM = 0; let totalF = 0; f1Mod1.forEach(d => { totalM += d.M; totalF += d.F; });
+                    actualizarGraficoPie('genero', 'chartGenero', ['Masculino', 'Femenino'], [totalM, totalF], [colorCom, colorLib]);
+
+                    let descMap = {}; f1Mod1.forEach(d => { if (d.DESCRIPTOR !== 'Sin Registro' && d.DESCRIPTOR !== '') descMap[d.DESCRIPTOR] = (descMap[d.DESCRIPTOR] || 0) + d.ASISTENTES; });
+                    let labelsDesc = Object.keys(descMap).sort((a,b) => descMap[b] - descMap[a]);
+                    let coloresDesc = labelsDesc.map(e => (filtrosGlobales.descriptor && filtrosGlobales.descriptor !== e) ? '#e0e0e0' : colorCom);
+                    actualizarGraficoHorizontalScroll('descriptor', 'chartDescriptor', 'wrapperDescriptor', labelsDesc, labelsDesc.map(e => descMap[e]), coloresDesc, 'Asistentes', manejarClicFiltro('descriptor'));
+
+                    let f1Territorio = f1Base.filter(d => !d.ES_INAUGURACION);
+                    if (filtrosGlobales.mes) f1Territorio = f1Territorio.filter(d => d.MES_LIMPIO === filtrosGlobales.mes);
+                    let comMap = {}; f1Territorio.forEach(d => { if (d.COMUNA !== 'Sin Registro' && d.COMUNA !== '') comMap[d.COMUNA] = (comMap[d.COMUNA] || 0) + d.ASISTENTES; });
+                    let labelsCom = Object.keys(comMap).sort((a,b) => comMap[b] - comMap[a]);
+                    let coloresCom = labelsCom.map(e => (filtrosGlobales.comuna && filtrosGlobales.comuna !== e) ? '#e0e0e0' : obtenerColorTerritorioBase(e));
+                    actualizarGraficoHorizontalScroll('comuna', 'chartComuna', 'wrapperComuna', labelsCom, labelsCom.map(e => comMap[e]), coloresCom, 'Asistentes', manejarClicFiltro('comuna'));
+                    actualizarMapaGeorreferenciado(f1Territorio);
+                }
+
+                if (activas.libres) {
+                    let f2Secundario = filtrosGlobales.mes ? f2Base.filter(d => d.MES_LIMPIO === filtrosGlobales.mes) : f2Base;
+                    let semTotales = {}; for(let i=1; i<=10; i++) { semTotales[i+'S'] = 0; }
+                    f2Secundario.forEach(d => { for(let key in d.SEMUESTRES) { semTotales[key] += d.SEMUESTRES[key]; } });
+                    actualizarGraficoConfig('semestres', 'chartSemestres', 'line', Object.keys(semTotales), [{ label: 'Estudiantes', data: Object.values(semTotales), borderColor: '#16a085', tension: 0.2, fill: false }], false, null);
+
+                    let vincTotales = { 'Estudiantes': 0, 'Docentes': 0, 'Empleados': 0, 'Contratistas': 0, 'Niñ@s': 0, 'Egresados': 0 };
+                    f2Secundario.forEach(d => {
+                        vincTotales['Estudiantes'] += d.VINCULACION.estudiantes; vincTotales['Docentes'] += d.VINCULACION.docentes;
+                        vincTotales['Empleados'] += d.VINCULACION.empleados; vincTotales['Contratistas'] += d.VINCULACION.contratistas;
+                        vincTotales['Niñ@s'] += d.VINCULACION.ninos; vincTotales['Egresados'] += (d.VINCULACION.egresadoITM + d.VINCULACION.egresadoLaSalle);
+                    });
+                    actualizarGraficoConfig('vinculacion', 'chartVinculacion', 'bar', Object.keys(vincTotales), [{ label: 'Cantidad', data: Object.values(vincTotales), backgroundColor: colorLib, borderRadius: 4 }], false, null);
+
+                    let proTotales = { 'Comunidad ITM': 0, 'Externos': 0 };
+                    f2Secundario.forEach(d => { proTotales['Comunidad ITM'] += d.PROCEDENCIA.comunidadITM; proTotales['Externos'] += d.PROCEDENCIA.externos; });
+                    actualizarGraficoPie('procedencia', 'chartProcedencia', Object.keys(proTotales), Object.values(proTotales), ['#27ae60', '#bdc3c7']);
+                }
+            } catch (error) {
+                console.error("Error crítico procesando la vista del Dashboard:", error);
+            }
         }
-        init();
+
+        function manejarClicFiltro(tipoFiltro) {
+            return (evt, elementos, chart) => {
+                if (elementos.length > 0) {
+                    const clickeada = chart.data.labels[elementos[0].index];
+                    filtrosGlobales[tipoFiltro] = (filtrosGlobales[tipoFiltro] === clickeada) ? null : clickeada;
+                    procesarDatos();
+                }
+            };
+        }
+
+        function actualizarMapaGeorreferenciado(datosMapear) {
+            capaMarcadores.clearLayers(); let agrupacion = {};
+            datosMapear.forEach(d => {
+                if (filtrosGlobales.comuna && d.COMUNA !== filtrosGlobales.comuna) return;
+                if (!isNaN(d.LAT) && !isNaN(d.LON)) {
+                    let llave = d.LAT + "_" + d.LON + "_" + d.INSTITUCION;
+                    if (!agrupacion[llave]) agrupacion[llave] = { lat: d.LAT, lon: d.LON, inst: d.INSTITUCION, com: d.COMUNA, sum: 0 };
+                    agrupacion[llave].sum += d.ASISTENTES;
+                }
+            });
+            Object.values(agrupacion).forEach(p => {
+                let radio = Math.max(4, Math.sqrt(p.sum) * 1.2); let col = obtenerColorTerritorioBase(p.com);
+                if (filtrosGlobales.comuna && filtrosGlobales.comuna !== p.com) col = '#e0e0e0';
+                let marcador = L.circleMarker([p.lat, p.lon], { radius: radio, color: col, fillColor: col, fillOpacity: 0.7, weight: 1 });
+                marcador.bindPopup(`<div style="text-align:center;"><strong>${p.inst}</strong><br><span style="color:#7f8c8d;">${p.com}</span><hr style="margin:5px 0;"><strong style="color:${col}; font-size:16px;">${p.sum} Asistentes Totales</strong></div>`);
+                capaMarcadores.addLayer(marcador);
+            });
+        }
+
+        function actualizarGraficoConfig(idGrafico, idCanvas, tipo, etiquetas, configDatasets, mostrarLeyenda, funcionClic, esApilado = false, esHorizontal = false) {
+            const ctx = document.getElementById(idCanvas).getContext('2d');
+            let opciones = { responsive: true, maintainAspectRatio: false, layout: { padding: { top: 30, right: 20 } }, plugins: { legend: { display: mostrarLeyenda } } };
+            
+            if (esApilado) {
+                opciones.scales = { x: { stacked: true }, y: { stacked: true } };
+                opciones.plugins.datalabels = { display: false };
+            } else if (esHorizontal) {
+                opciones.indexAxis = 'y';
+                opciones.plugins.datalabels = { align: 'right', anchor: 'end' };
+                let max = 0; configDatasets.forEach(ds => { if(ds.data && ds.data.length > 0) { let m = Math.max(...ds.data); if(m > max) max = m; } });
+                opciones.scales = { x: { suggestedMax: max === 0 ? 10 : max * 1.15 } };
+            } else if (tipo === 'bar') { 
+                let max = 0; configDatasets.forEach(ds => { if(ds.data && ds.data.length > 0) { let m = Math.max(...ds.data); if(m > max) max = m; } });
+                opciones.scales = { y: { suggestedMax: max === 0 ? 10 : max * 1.15 } }; 
+            }
+
+            if (funcionClic) opciones.onClick = (e, el) => funcionClic(e, el, graficos[idGrafico]);
+            
+            if (graficos[idGrafico]) { 
+                graficos[idGrafico].data.labels = etiquetas; 
+                graficos[idGrafico].data.datasets = configDatasets; 
+                graficos[idGrafico].options = opciones; 
+                graficos[idGrafico].update(); 
+            } else { 
+                graficos[idGrafico] = new Chart(ctx, { type: tipo, data: { labels: etiquetas, datasets: configDatasets }, options: opciones }); 
+            }
+        }
+
+        function actualizarGraficoBasico(idGrafico, idCanvas, tipo, etiquetas, valores, colores, labelDataset, funcionClic) {
+            actualizarGraficoConfig(idGrafico, idCanvas, tipo, etiquetas, [{ label: labelDataset, data: valores, backgroundColor: colores, borderRadius: 4 }], false, funcionClic);
+        }
+
+        function actualizarGraficoHorizontalScroll(idGrafico, idCanvas, idWrapper, etiquetas, valores, arrayColores, labelDataset, funcionClic) {
+            const canvas = document.getElementById(idCanvas); const wrapper = document.getElementById(idWrapper); const ctx = canvas.getContext('2d');
+            wrapper.style.height = Math.max(wrapper.parentElement.clientHeight, etiquetas.length * 35) + 'px';
+            let maxVal = valores.length > 0 ? Math.max(...valores) : 10;
+            let ops = { indexAxis: 'y', responsive: true, maintainAspectRatio: false, plugins: { datalabels: { align: 'right', anchor: 'end' }, legend: { display: false } }, scales: { x: { suggestedMax: maxVal === 0 ? 10 : maxVal * 1.15 } } };
+            if (funcionClic) ops.onClick = (e, el) => funcionClic(e, el, graficos[idGrafico]);
+            if (graficos[idGrafico]) { graficos[idGrafico].data.labels = etiquetas; graficos[idGrafico].data.datasets[0].data = valores; graficos[idGrafico].data.datasets[0].backgroundColor = arrayColores; graficos[idGrafico].options = ops; graficos[idGrafico].update(); } 
+            else { graficos[idGrafico] = new Chart(ctx, { type: 'bar', data: { labels: etiquetas, datasets: [{ label: labelDataset, data: valores, backgroundColor: arrayColores, borderRadius: 4 }] }, options: ops }); }
+        }
+
+        function actualizarGraficoPie(idGrafico, idCanvas, etiquetas, valores, colores) {
+            const ctx = document.getElementById(idCanvas).getContext('2d');
+            if (valores.every(v => v === 0)) valores = [];
+            let opcionesPie = { responsive: true, maintainAspectRatio: false, plugins: { datalabels: { color: '#fff', font: { size: 12, weight: 'bold' }, anchor: 'center', align: 'center', formatter: (value, context) => { let suma = context.chart.data.datasets[0].data.reduce((a, b) => a + b, 0); if (suma === 0) return ''; let pct = ((value * 100) / suma).toFixed(1) + '%'; return value > 0 ? value.toLocaleString() + '\n(' + pct + ')' : ''; } } } };
+            if (graficos[idGrafico]) { graficos[idGrafico].data.datasets[0].data = valores; graficos[idGrafico].update(); } 
+            else { graficos[idGrafico] = new Chart(ctx, { type: 'doughnut', data: { labels: etiquetas, datasets: [{ data: valores, backgroundColor: colores }] }, options: opcionesPie }); }
+        }
+
+        function resetearFiltros() { 
+            filtrosGlobales = { mes: null, comuna: null, edad: null, descriptor: null };
+            document.getElementById('selectorAnio').value = "TODOS";
+            const checkboxes = document.querySelectorAll('.chk-item input');
+            checkboxes.forEach(chk => chk.checked = true);
+            procesarDatos(); 
+        }
     </script>
 </body>
 </html>
