@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard MCNS | Ecosistema Integral V11.4</title>
+    <title>Dashboard MCNS | Ecosistema Integral V11.5 Definitiva</title>
     
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
@@ -22,7 +22,6 @@
         .btn-reset { padding: 10px 15px; cursor:pointer; background:#e74c3c; color:white; border:none; border-radius:5px; font-weight:bold; transition: background 0.3s; }
         .btn-reset:hover { background: #c0392b; }
 
-        /* Panel de Interruptores Múltiples */
         .filtros-multiples { display: flex; flex-wrap: wrap; gap: 10px; padding-top: 15px; border-top: 1px solid #eee; }
         .chk-item { display: flex; align-items: center; gap: 5px; background: #f8f9fa; padding: 6px 12px; border-radius: 20px; border: 1px solid #ddd; cursor: pointer; font-size: 0.9em; transition: 0.2s; user-select: none; }
         .chk-item:hover { background: #e9ecef; }
@@ -72,7 +71,7 @@
 
     <div class="header">
         <div class="header-top">
-            <h2>📊 Ecosistema Integral MCNS | V11.4</h2>
+            <h2>📊 Ecosistema Integral MCNS | V11.5 Definitiva</h2>
             <div class="controles">
                 <div>
                     <label for="selectorAnio"><strong>Año: </strong></label>
@@ -80,7 +79,7 @@
                         <option value="TODOS">Todos los años</option>
                     </select>
                 </div>
-                <button class="btn-reset" onclick="resetearFiltros()">Limpiar Filtros Mensuales</button>
+                <button class="btn-reset" onclick="resetearFiltros()">Limpiar Filtros</button>
             </div>
         </div>
         
@@ -387,18 +386,20 @@
                 
                 actualizarGraficoConfig('ecosistema', 'chartEcosistema', 'bar', etiquetasEco, [{ data: valoresEco, backgroundColor: coloresEco, borderRadius: 4 }], false, null, false, true);
 
+                // APLICACIÓN DEL GROSOR DINÁMICO (barPercentage y maxBarThickness)
+                let opBarras = { barPercentage: 0.85, categoryPercentage: 0.9, maxBarThickness: 45, borderRadius: 4 };
                 let datasetsMensuales = [];
-                if(activas.comentadas) datasetsMensuales.push({ label: 'Visitas Comentadas', data: mesesOrden.map(m => f1Base.filter(d => !d.ES_INAUGURACION && d.MES_LIMPIO === m).reduce((s, d) => s + d.ASISTENTES, 0)), backgroundColor: colorCom, borderRadius: 4 });
-                if(activas.libres) datasetsMensuales.push({ label: 'Recorridos Libres', data: mesesOrden.map(m => f2Base.filter(d => d.MES_LIMPIO === m).reduce((s, d) => s + d.VISITAS_LIBRES, 0)), backgroundColor: colorLib, borderRadius: 4 });
-                if(activas.inauguraciones) datasetsMensuales.push({ label: 'Inauguraciones', data: mesesOrden.map(m => f1Base.filter(d => d.ES_INAUGURACION && d.MES_LIMPIO === m).reduce((s, d) => s + d.ASISTENTES, 0)), backgroundColor: colorInaug, borderRadius: 4 });
-                if(activas.aecc) datasetsMensuales.push({ label: 'Eventos AECC', data: mesesOrden.map(m => f3Base.filter(d => d.MES_LIMPIO === m).reduce((s, d) => s + d.AECC, 0)), backgroundColor: colorAECC, borderRadius: 4 });
-                if(activas.oa) datasetsMensuales.push({ label: 'Visitas OA', data: mesesOrden.map(m => f3Base.filter(d => d.MES_LIMPIO === m).reduce((s, d) => s + d.OA, 0)), backgroundColor: colorOA, borderRadius: 4 });
-                if(activas.ref) datasetsMensuales.push({ label: 'Visitas Referencia', data: mesesOrden.map(m => f3Base.filter(d => d.MES_LIMPIO === m).reduce((s, d) => s + d.REF, 0)), backgroundColor: colorRef, borderRadius: 4 });
-                if(activas.semilleros) datasetsMensuales.push({ label: 'Semilleros', data: mesesOrden.map(m => f3Base.filter(d => d.MES_LIMPIO === m).reduce((s, d) => s + d.SEM, 0)), backgroundColor: colorSem, borderRadius: 4 });
+                
+                if(activas.comentadas) datasetsMensuales.push({ label: 'Visitas Comentadas', data: mesesOrden.map(m => f1Base.filter(d => !d.ES_INAUGURACION && d.MES_LIMPIO === m).reduce((s, d) => s + d.ASISTENTES, 0)), backgroundColor: colorCom, ...opBarras });
+                if(activas.libres) datasetsMensuales.push({ label: 'Recorridos Libres', data: mesesOrden.map(m => f2Base.filter(d => d.MES_LIMPIO === m).reduce((s, d) => s + d.VISITAS_LIBRES, 0)), backgroundColor: colorLib, ...opBarras });
+                if(activas.inauguraciones) datasetsMensuales.push({ label: 'Inauguraciones', data: mesesOrden.map(m => f1Base.filter(d => d.ES_INAUGURACION && d.MES_LIMPIO === m).reduce((s, d) => s + d.ASISTENTES, 0)), backgroundColor: colorInaug, ...opBarras });
+                if(activas.aecc) datasetsMensuales.push({ label: 'Eventos AECC', data: mesesOrden.map(m => f3Base.filter(d => d.MES_LIMPIO === m).reduce((s, d) => s + d.AECC, 0)), backgroundColor: colorAECC, ...opBarras });
+                if(activas.oa) datasetsMensuales.push({ label: 'Visitas OA', data: mesesOrden.map(m => f3Base.filter(d => d.MES_LIMPIO === m).reduce((s, d) => s + d.OA, 0)), backgroundColor: colorOA, ...opBarras });
+                if(activas.ref) datasetsMensuales.push({ label: 'Visitas Referencia', data: mesesOrden.map(m => f3Base.filter(d => d.MES_LIMPIO === m).reduce((s, d) => s + d.REF, 0)), backgroundColor: colorRef, ...opBarras });
+                if(activas.semilleros) datasetsMensuales.push({ label: 'Semilleros', data: mesesOrden.map(m => f3Base.filter(d => d.MES_LIMPIO === m).reduce((s, d) => s + d.SEM, 0)), backgroundColor: colorSem, ...opBarras });
                 
                 if (filtrosGlobales.mes) { datasetsMensuales.forEach(ds => { ds.backgroundColor = mesesOrden.map(m => m === filtrosGlobales.mes ? ds.backgroundColor : '#e0e0e0'); }); }
                 
-                // NOTA DE ACTUALIZACIÓN: El último parámetro "false" desactiva el apilamiento (stacked) y permite que se vean agrupadas (side-by-side)
                 actualizarGraficoConfig('asistentes', 'chartAsistentes', 'bar', mesesOrden, datasetsMensuales, true, manejarClicFiltro('mes'), false);
 
                 if (activas.comentadas) {
