@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard MCNS | Ecosistema Integral V11.2</title>
+    <title>Dashboard MCNS | Ecosistema Integral V11.3</title>
     
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
@@ -72,7 +72,7 @@
 
     <div class="header">
         <div class="header-top">
-            <h2>📊 Ecosistema Integral MCNS | V11.2</h2>
+            <h2>📊 Ecosistema Integral MCNS | V11.3</h2>
             <div class="controles">
                 <div>
                     <label for="selectorAnio"><strong>Año: </strong></label>
@@ -334,133 +334,136 @@
         }
 
         function procesarDatos() {
-            const activas = getFuentesActivas();
-            const anioElegido = document.getElementById('selectorAnio').value;
-            actualizarTextosContexto();
+            try {
+                const activas = getFuentesActivas();
+                const anioElegido = document.getElementById('selectorAnio').value;
+                actualizarTextosContexto();
 
-            let f1Base = (anioElegido === "TODOS") ? datosComentadas : datosComentadas.filter(d => d.ANIO === anioElegido);
-            let f2Base = (anioElegido === "TODOS") ? datosLibres : datosLibres.filter(d => d.ANIO === anioElegido);
-            let f3Base = (anioElegido === "TODOS") ? datosEcosistema : datosEcosistema.filter(d => d.ANIO === anioElegido);
+                let f1Base = (anioElegido === "TODOS") ? datosComentadas : datosComentadas.filter(d => d.ANIO === anioElegido);
+                let f2Base = (anioElegido === "TODOS") ? datosLibres : datosLibres.filter(d => d.ANIO === anioElegido);
+                let f3Base = (anioElegido === "TODOS") ? datosEcosistema : datosEcosistema.filter(d => d.ANIO === anioElegido);
 
-            let f1Total = f1Base; let f2Total = f2Base; let f3Total = f3Base;
-            if (filtrosGlobales.mes) {
-                f1Total = f1Total.filter(d => d.MES_LIMPIO === filtrosGlobales.mes);
-                f2Total = f2Total.filter(d => d.MES_LIMPIO === filtrosGlobales.mes);
-                f3Total = f3Total.filter(d => d.MES_LIMPIO === filtrosGlobales.mes);
+                let f1Total = f1Base; let f2Total = f2Base; let f3Total = f3Base;
+                if (filtrosGlobales.mes) {
+                    f1Total = f1Total.filter(d => d.MES_LIMPIO === filtrosGlobales.mes);
+                    f2Total = f2Total.filter(d => d.MES_LIMPIO === filtrosGlobales.mes);
+                    f3Total = f3Total.filter(d => d.MES_LIMPIO === filtrosGlobales.mes);
+                }
+
+                let sumComentadasPuras = activas.comentadas ? f1Total.filter(d => !d.ES_INAUGURACION).reduce((s, d) => s + d.ASISTENTES, 0) : 0;
+                let sumInauguraciones = activas.inauguraciones ? f1Total.filter(d => d.ES_INAUGURACION).reduce((s, d) => s + d.ASISTENTES, 0) : 0;
+                let sumLibres = activas.libres ? f2Total.reduce((s, d) => s + d.VISITAS_LIBRES, 0) : 0;
+                let sumAECC = activas.aecc ? f3Total.reduce((s, d) => s + d.AECC, 0) : 0;
+                let sumOA = activas.oa ? f3Total.reduce((s, d) => s + d.OA, 0) : 0;
+                let sumRef = activas.ref ? f3Total.reduce((s, d) => s + d.REF, 0) : 0;
+                let sumSem = activas.semilleros ? f3Total.reduce((s, d) => s + d.SEM, 0) : 0;
+
+                let sumGeneral = sumComentadasPuras + sumLibres + sumInauguraciones + sumAECC + sumOA + sumRef + sumSem;
+
+                document.getElementById('kpiComentadas').innerText = sumComentadasPuras.toLocaleString();
+                document.getElementById('kpiLibres').innerText = sumLibres.toLocaleString();
+                document.getElementById('kpiTotalGeneral').innerText = sumGeneral.toLocaleString();
+
+                let calcPct = (val) => sumGeneral > 0 ? (val / sumGeneral) * 100 : 0;
+                document.getElementById('segComentadas').style.width = calcPct(sumComentadasPuras) + '%';
+                document.getElementById('segLibres').style.width = calcPct(sumLibres) + '%';
+                document.getElementById('segInauguraciones').style.width = calcPct(sumInauguraciones) + '%';
+                document.getElementById('segAECC').style.width = calcPct(sumAECC) + '%';
+                document.getElementById('segOA').style.width = calcPct(sumOA) + '%';
+                document.getElementById('segRef').style.width = calcPct(sumRef) + '%';
+                document.getElementById('segSemilleros').style.width = calcPct(sumSem) + '%';
+
+                document.getElementById('bloqueModuloComentadas').style.display = activas.comentadas ? 'block' : 'none';
+                document.getElementById('bloqueModuloLibres').style.display = activas.libres ? 'block' : 'none';
+
+                let etiquetasEco = []; let valoresEco = []; let coloresEco = [];
+                if(activas.comentadas) { etiquetasEco.push('Visitas Comentadas'); valoresEco.push(sumComentadasPuras); coloresEco.push(colorCom); }
+                if(activas.libres) { etiquetasEco.push('Recorridos Libres'); valoresEco.push(sumLibres); coloresEco.push(colorLib); }
+                if(activas.inauguraciones) { etiquetasEco.push('Inauguraciones'); valoresEco.push(sumInauguraciones); coloresEco.push(colorInaug); }
+                if(activas.aecc) { etiquetasEco.push('Eventos AECC'); valoresEco.push(sumAECC); coloresEco.push(colorAECC); }
+                if(activas.oa) { etiquetasEco.push('Visitas OA'); valoresEco.push(sumOA); coloresEco.push(colorOA); }
+                if(activas.ref) { etiquetasEco.push('Visitas Referencia'); valoresEco.push(sumRef); coloresEco.push(colorRef); }
+                if(activas.semilleros) { etiquetasEco.push('Semilleros'); valoresEco.push(sumSem); coloresEco.push(colorSem); }
+                
+                actualizarGraficoConfig('ecosistema', 'chartEcosistema', 'bar', etiquetasEco, [{ data: valoresEco, backgroundColor: coloresEco, borderRadius: 4 }], false, null, false, true);
+
+                let datasetsMensuales = [];
+                if(activas.comentadas) datasetsMensuales.push({ label: 'Visitas Comentadas', data: mesesOrden.map(m => f1Base.filter(d => !d.ES_INAUGURACION && d.MES_LIMPIO === m).reduce((s, d) => s + d.ASISTENTES, 0)), backgroundColor: colorCom, borderRadius: 0 });
+                if(activas.libres) datasetsMensuales.push({ label: 'Recorridos Libres', data: mesesOrden.map(m => f2Base.filter(d => d.MES_LIMPIO === m).reduce((s, d) => s + d.VISITAS_LIBRES, 0)), backgroundColor: colorLib, borderRadius: 0 });
+                if(activas.inauguraciones) datasetsMensuales.push({ label: 'Inauguraciones', data: mesesOrden.map(m => f1Base.filter(d => d.ES_INAUGURACION && d.MES_LIMPIO === m).reduce((s, d) => s + d.ASISTENTES, 0)), backgroundColor: colorInaug, borderRadius: 0 });
+                if(activas.aecc) datasetsMensuales.push({ label: 'Eventos AECC', data: mesesOrden.map(m => f3Base.filter(d => d.MES_LIMPIO === m).reduce((s, d) => s + d.AECC, 0)), backgroundColor: colorAECC, borderRadius: 0 });
+                if(activas.oa) datasetsMensuales.push({ label: 'Visitas OA', data: mesesOrden.map(m => f3Base.filter(d => d.MES_LIMPIO === m).reduce((s, d) => s + d.OA, 0)), backgroundColor: colorOA, borderRadius: 0 });
+                if(activas.ref) datasetsMensuales.push({ label: 'Visitas Referencia', data: mesesOrden.map(m => f3Base.filter(d => d.MES_LIMPIO === m).reduce((s, d) => s + d.REF, 0)), backgroundColor: colorRef, borderRadius: 0 });
+                if(activas.semilleros) datasetsMensuales.push({ label: 'Semilleros', data: mesesOrden.map(m => f3Base.filter(d => d.MES_LIMPIO === m).reduce((s, d) => s + d.SEM, 0)), backgroundColor: colorSem, borderRadius: 0 });
+                
+                if (filtrosGlobales.mes) { datasetsMensuales.forEach(ds => { ds.backgroundColor = mesesOrden.map(m => m === filtrosGlobales.mes ? ds.backgroundColor : '#e0e0e0'); }); }
+                
+                // Uso del pipeline estabilizado para el gráfico apilado
+                actualizarGraficoConfig('asistentes', 'chartAsistentes', 'bar', mesesOrden, datasetsMensuales, true, manejarClicFiltro('mes'), true);
+
+                if (activas.comentadas) {
+                    let f1Mod1 = f1Base.filter(d => !d.ES_INAUGURACION);
+                    if (filtrosGlobales.mes) f1Mod1 = f1Mod1.filter(d => d.MES_LIMPIO === filtrosGlobales.mes);
+                    if (filtrosGlobales.comuna) f1Mod1 = f1Mod1.filter(d => d.COMUNA === filtrosGlobales.comuna);
+                    if (filtrosGlobales.edad) f1Mod1 = f1Mod1.filter(d => d.EDAD === filtrosGlobales.edad);
+                    if (filtrosGlobales.descriptor) f1Mod1 = f1Mod1.filter(d => d.DESCRIPTOR === filtrosGlobales.descriptor);
+
+                    let gruposMes = mesesOrden.map(m => f1Mod1.filter(d => d.MES_LIMPIO === m).reduce((s, d) => s + d.GRUPOS, 0));
+                    actualizarGraficoBasico('grupos', 'chartGrupos', 'bar', mesesOrden, gruposMes, '#7f8c8d', 'Grupos', null);
+
+                    let edadMap = {}; f1Mod1.forEach(d => { if (d.EDAD !== 'Sin clasificar') edadMap[d.EDAD] = (edadMap[d.EDAD] || 0) + d.ASISTENTES; });
+                    let labelsEdad = Object.keys(edadMap).sort();
+                    let coloresEdad = labelsEdad.map(e => (filtrosGlobales.edad && filtrosGlobales.edad !== e) ? '#e0e0e0' : colorCom);
+                    actualizarGraficoBasico('edad', 'chartEdad', 'bar', labelsEdad, labelsEdad.map(e => edadMap[e]), coloresEdad, 'Asistentes', manejarClicFiltro('edad'));
+
+                    let totalM = 0; let totalF = 0; f1Mod1.forEach(d => { totalM += d.M; totalF += d.F; });
+                    actualizarGraficoPie('genero', 'chartGenero', ['Masculino', 'Femenino'], [totalM, totalF], [colorCom, colorLib]);
+
+                    let descMap = {}; f1Mod1.forEach(d => { if (d.DESCRIPTOR !== 'Sin Registro' && d.DESCRIPTOR !== '') descMap[d.DESCRIPTOR] = (descMap[d.DESCRIPTOR] || 0) + d.ASISTENTES; });
+                    let labelsDesc = Object.keys(descMap).sort((a,b) => descMap[b] - descMap[a]);
+                    let coloresDesc = labelsDesc.map(e => (filtrosGlobales.descriptor && filtrosGlobales.descriptor !== e) ? '#e0e0e0' : colorCom);
+                    actualizarGraficoHorizontalScroll('descriptor', 'chartDescriptor', 'wrapperDescriptor', labelsDesc, labelsDesc.map(e => descMap[e]), coloresDesc, 'Asistentes', manejarClicFiltro('descriptor'));
+
+                    let f1Territorio = f1Base.filter(d => !d.ES_INAUGURACION);
+                    if (filtrosGlobales.mes) f1Territorio = f1Territorio.filter(d => d.MES_LIMPIO === filtrosGlobales.mes);
+                    let comMap = {}; f1Territorio.forEach(d => { if (d.COMUNA !== 'Sin Registro' && d.COMUNA !== '') comMap[d.COMUNA] = (comMap[d.COMUNA] || 0) + d.ASISTENTES; });
+                    let labelsCom = Object.keys(comMap).sort((a,b) => comMap[b] - comMap[a]);
+                    let coloresCom = labelsCom.map(e => (filtrosGlobales.comuna && filtrosGlobales.comuna !== e) ? '#e0e0e0' : obtenerColorTerritorioBase(e));
+                    actualizarGraficoHorizontalScroll('comuna', 'chartComuna', 'wrapperComuna', labelsCom, labelsCom.map(e => comMap[e]), coloresCom, 'Asistentes', manejarClicFiltro('comuna'));
+                    actualizarMapaGeorreferenciado(f1Territorio);
+                }
+
+                if (activas.libres) {
+                    let f2Secundario = filtrosGlobales.mes ? f2Base.filter(d => d.MES_LIMPIO === filtrosGlobales.mes) : f2Base;
+                    let semTotales = {}; for(let i=1; i<=10; i++) { semTotales[i+'S'] = 0; }
+                    f2Secundario.forEach(d => { for(let key in d.SEMUESTRES) { semTotales[key] += d.SEMUESTRES[key]; } });
+                    actualizarGraficoConfig('semestres', 'chartSemestres', 'line', Object.keys(semTotales), [{ label: 'Estudiantes', data: Object.values(semTotales), borderColor: '#16a085', tension: 0.2, fill: false }], false, null);
+
+                    let vincTotales = { 'Estudiantes': 0, 'Docentes': 0, 'Empleados': 0, 'Contratistas': 0, 'Niñ@s': 0, 'Egresados': 0 };
+                    f2Secundario.forEach(d => {
+                        vincTotales['Estudiantes'] += d.VINCULACION.estudiantes; vincTotales['Docentes'] += d.VINCULACION.docentes;
+                        vincTotales['Empleados'] += d.VINCULACION.empleados; vincTotales['Contratistas'] += d.VINCULACION.contratistas;
+                        vincTotales['Niñ@s'] += d.VINCULACION.ninos; vincTotales['Egresados'] += (d.VINCULACION.egresadoITM + d.VINCULACION.egresadoLaSalle);
+                    });
+                    actualizarGraficoConfig('vinculacion', 'chartVinculacion', 'bar', Object.keys(vincTotales), [{ label: 'Cantidad', data: Object.values(vincTotales), backgroundColor: colorLib, borderRadius: 4 }], false, null);
+
+                    let proTotales = { 'Comunidad ITM': 0, 'Externos': 0 };
+                    f2Secundario.forEach(d => { proTotales['Comunidad ITM'] += d.PROCEDENCIA.comunidadITM; proTotales['Externos'] += d.PROCEDENCIA.externos; });
+                    actualizarGraficoPie('procedencia', 'chartProcedencia', Object.keys(proTotales), Object.values(proTotales), ['#27ae60', '#bdc3c7']);
+                }
+            } catch (error) {
+                console.error("Error crítico procesando la vista del Dashboard:", error);
             }
+        }
 
-            // Aplicar cálculos selectivos según Checkboxes
-            let sumComentadasPuras = activas.comentadas ? f1Total.filter(d => !d.ES_INAUGURACION).reduce((s, d) => s + d.ASISTENTES, 0) : 0;
-            let sumInauguraciones = activas.inauguraciones ? f1Total.filter(d => d.ES_INAUGURACION).reduce((s, d) => s + d.ASISTENTES, 0) : 0;
-            let sumLibres = activas.libres ? f2Total.reduce((s, d) => s + d.VISITAS_LIBRES, 0) : 0;
-            let sumAECC = activas.aecc ? f3Total.reduce((s, d) => s + d.AECC, 0) : 0;
-            let sumOA = activas.oa ? f3Total.reduce((s, d) => s + d.OA, 0) : 0;
-            let sumRef = activas.ref ? f3Total.reduce((s, d) => s + d.REF, 0) : 0;
-            let sumSem = activas.semilleros ? f3Total.reduce((s, d) => s + d.SEM, 0) : 0;
-
-            let sumGeneral = sumComentadasPuras + sumLibres + sumInauguraciones + sumAECC + sumOA + sumRef + sumSem;
-
-            document.getElementById('kpiComentadas').innerText = sumComentadasPuras.toLocaleString();
-            document.getElementById('kpiLibres').innerText = sumLibres.toLocaleString();
-            document.getElementById('kpiTotalGeneral').innerText = sumGeneral.toLocaleString();
-
-            let calcPct = (val) => sumGeneral > 0 ? (val / sumGeneral) * 100 : 0;
-            document.getElementById('segComentadas').style.width = calcPct(sumComentadasPuras) + '%';
-            document.getElementById('segLibres').style.width = calcPct(sumLibres) + '%';
-            document.getElementById('segInauguraciones').style.width = calcPct(sumInauguraciones) + '%';
-            document.getElementById('segAECC').style.width = calcPct(sumAECC) + '%';
-            document.getElementById('segOA').style.width = calcPct(sumOA) + '%';
-            document.getElementById('segRef').style.width = calcPct(sumRef) + '%';
-            document.getElementById('segSemilleros').style.width = calcPct(sumSem) + '%';
-
-            // Control visual de Módulos Inferiores
-            document.getElementById('bloqueModuloComentadas').style.display = activas.comentadas ? 'block' : 'none';
-            document.getElementById('bloqueModuloLibres').style.display = activas.libres ? 'block' : 'none';
-
-            // DIBUJAR GRÁFICO MACRO ECOSISTEMA
-            let etiquetasEco = []; let valoresEco = []; let coloresEco = [];
-            if(activas.comentadas) { etiquetasEco.push('Visitas Comentadas'); valoresEco.push(sumComentadasPuras); coloresEco.push(colorCom); }
-            if(activas.libres) { etiquetasEco.push('Recorridos Libres'); valoresEco.push(sumLibres); coloresEco.push(colorLib); }
-            if(activas.inauguraciones) { etiquetasEco.push('Inauguraciones'); valoresEco.push(sumInauguraciones); coloresEco.push(colorInaug); }
-            if(activas.aecc) { etiquetasEco.push('Eventos AECC'); valoresEco.push(sumAECC); coloresEco.push(colorAECC); }
-            if(activas.oa) { etiquetasEco.push('Visitas OA'); valoresEco.push(sumOA); coloresEco.push(colorOA); }
-            if(activas.ref) { etiquetasEco.push('Visitas Referencia'); valoresEco.push(sumRef); coloresEco.push(colorRef); }
-            if(activas.semilleros) { etiquetasEco.push('Semilleros'); valoresEco.push(sumSem); coloresEco.push(colorSem); }
-            
-            const ctxEco = document.getElementById('chartEcosistema').getContext('2d');
-            let maxEco = valoresEco.length > 0 ? Math.max(...valoresEco) : 10;
-            let opEco = { indexAxis: 'y', responsive: true, maintainAspectRatio: false, plugins: { datalabels: { align: 'right', anchor: 'end' }, legend: { display: false } }, scales: { x: { suggestedMax: maxEco * 1.15 } } };
-            if (graficos['ecosistema']) { graficos['ecosistema'].data.labels = etiquetasEco; graficos['ecosistema'].data.datasets[0].data = valoresEco; graficos['ecosistema'].data.datasets[0].backgroundColor = coloresEco; graficos['ecosistema'].options = opEco; graficos['ecosistema'].update(); } 
-            else { graficos['ecosistema'] = new Chart(ctxEco, { type: 'bar', data: { labels: etiquetasEco, datasets: [{ data: valoresEco, backgroundColor: coloresEco, borderRadius: 4 }] }, options: opEco }); }
-
-            // DIBUJAR GRÁFICO MENSUAL APILADO
-            let datasetsMensuales = [];
-            if(activas.comentadas) datasetsMensuales.push({ label: 'Visitas Comentadas', data: mesesOrden.map(m => f1Base.filter(d => !d.ES_INAUGURACION && d.MES_LIMPIO === m).reduce((s, d) => s + d.ASISTENTES, 0)), backgroundColor: colorCom, borderRadius: 0 });
-            if(activas.libres) datasetsMensuales.push({ label: 'Recorridos Libres', data: mesesOrden.map(m => f2Base.filter(d => d.MES_LIMPIO === m).reduce((s, d) => s + d.VISITAS_LIBRES, 0)), backgroundColor: colorLib, borderRadius: 0 });
-            if(activas.inauguraciones) datasetsMensuales.push({ label: 'Inauguraciones', data: mesesOrden.map(m => f1Base.filter(d => d.ES_INAUGURACION && d.MES_LIMPIO === m).reduce((s, d) => s + d.ASISTENTES, 0)), backgroundColor: colorInaug, borderRadius: 0 });
-            if(activas.aecc) datasetsMensuales.push({ label: 'Eventos AECC', data: mesesOrden.map(m => f3Base.filter(d => d.MES_LIMPIO === m).reduce((s, d) => s + d.AECC, 0)), backgroundColor: colorAECC, borderRadius: 0 });
-            if(activas.oa) datasetsMensuales.push({ label: 'Visitas OA', data: mesesOrden.map(m => f3Base.filter(d => d.MES_LIMPIO === m).reduce((s, d) => s + d.OA, 0)), backgroundColor: colorOA, borderRadius: 0 });
-            if(activas.ref) datasetsMensuales.push({ label: 'Referencia', data: mesesOrden.map(m => f3Base.filter(d => d.MES_LIMPIO === m).reduce((s, d) => s + d.REF, 0)), backgroundColor: colorRef, borderRadius: 0 });
-            if(activas.semilleros) datasetsMensuales.push({ label: 'Semilleros', data: mesesOrden.map(m => f3Base.filter(d => d.MES_LIMPIO === m).reduce((s, d) => s + d.SEM, 0)), backgroundColor: colorSem, borderRadius: 0 });
-            
-            const ctxMen = document.getElementById('chartAsistentes').getContext('2d');
-            let opMen = { responsive: true, maintainAspectRatio: false, layout: { padding: { top: 30 } }, plugins: { legend: { display: true }, datalabels: { display: false } }, scales: { x: { stacked: true }, y: { stacked: true } }, onClick: manejarClicFiltro('mes') };
-            
-            if (filtrosGlobales.mes) { datasetsMensuales.forEach(ds => { ds.backgroundColor = mesesOrden.map(m => m === filtrosGlobales.mes ? ds.backgroundColor : '#e0e0e0'); }); }
-            if (graficos['asistentes']) { graficos['asistentes'].data.labels = mesesOrden; graficos['asistentes'].data.datasets = datasetsMensuales; graficos['asistentes'].options = opMen; graficos['asistentes'].update(); } 
-            else { graficos['asistentes'] = new Chart(ctxMen, { type: 'bar', data: { labels: mesesOrden, datasets: datasetsMensuales }, options: opMen }); }
-
-            // ACTUALIZACIÓN DE MÓDULOS (SI ESTÁN ACTIVOS)
-            if (activas.comentadas) {
-                let f1Mod1 = f1Base.filter(d => !d.ES_INAUGURACION);
-                if (filtrosGlobales.mes) f1Mod1 = f1Mod1.filter(d => d.MES_LIMPIO === filtrosGlobales.mes);
-                if (filtrosGlobales.comuna) f1Mod1 = f1Mod1.filter(d => d.COMUNA === filtrosGlobales.comuna);
-                if (filtrosGlobales.edad) f1Mod1 = f1Mod1.filter(d => d.EDAD === filtrosGlobales.edad);
-                if (filtrosGlobales.descriptor) f1Mod1 = f1Mod1.filter(d => d.DESCRIPTOR === filtrosGlobales.descriptor);
-
-                let gruposMes = mesesOrden.map(m => f1Mod1.filter(d => d.MES_LIMPIO === m).reduce((s, d) => s + d.GRUPOS, 0));
-                actualizarGraficoBasico('grupos', 'chartGrupos', 'bar', mesesOrden, gruposMes, '#7f8c8d', 'Grupos', null);
-
-                let edadMap = {}; f1Mod1.forEach(d => { if (d.EDAD !== 'Sin clasificar') edadMap[d.EDAD] = (edadMap[d.EDAD] || 0) + d.ASISTENTES; });
-                let labelsEdad = Object.keys(edadMap).sort();
-                let coloresEdad = labelsEdad.map(e => (filtrosGlobales.edad && filtrosGlobales.edad !== e) ? '#e0e0e0' : colorCom);
-                actualizarGraficoBasico('edad', 'chartEdad', 'bar', labelsEdad, labelsEdad.map(e => edadMap[e]), coloresEdad, 'Asistentes', manejarClicFiltro('edad'));
-
-                let totalM = 0; let totalF = 0; f1Mod1.forEach(d => { totalM += d.M; totalF += d.F; });
-                actualizarGraficoPie('genero', 'chartGenero', ['Masculino', 'Femenino'], [totalM, totalF], [colorCom, colorLib]);
-
-                let descMap = {}; f1Mod1.forEach(d => { if (d.DESCRIPTOR !== 'Sin Registro' && d.DESCRIPTOR !== '') descMap[d.DESCRIPTOR] = (descMap[d.DESCRIPTOR] || 0) + d.ASISTENTES; });
-                let labelsDesc = Object.keys(descMap).sort((a,b) => descMap[b] - descMap[a]);
-                let coloresDesc = labelsDesc.map(e => (filtrosGlobales.descriptor && filtrosGlobales.descriptor !== e) ? '#e0e0e0' : colorCom);
-                actualizarGraficoHorizontalScroll('descriptor', 'chartDescriptor', 'wrapperDescriptor', labelsDesc, labelsDesc.map(e => descMap[e]), coloresDesc, 'Asistentes', manejarClicFiltro('descriptor'));
-
-                let f1Territorio = f1Base.filter(d => !d.ES_INAUGURACION);
-                if (filtrosGlobales.mes) f1Territorio = f1Territorio.filter(d => d.MES_LIMPIO === filtrosGlobales.mes);
-                let comMap = {}; f1Territorio.forEach(d => { if (d.COMUNA !== 'Sin Registro' && d.COMUNA !== '') comMap[d.COMUNA] = (comMap[d.COMUNA] || 0) + d.ASISTENTES; });
-                let labelsCom = Object.keys(comMap).sort((a,b) => comMap[b] - comMap[a]);
-                let coloresCom = labelsCom.map(e => (filtrosGlobales.comuna && filtrosGlobales.comuna !== e) ? '#e0e0e0' : obtenerColorTerritorioBase(e));
-                actualizarGraficoHorizontalScroll('comuna', 'chartComuna', 'wrapperComuna', labelsCom, labelsCom.map(e => comMap[e]), coloresCom, 'Asistentes', manejarClicFiltro('comuna'));
-                actualizarMapaGeorreferenciado(f1Territorio);
-            }
-
-            if (activas.libres) {
-                let f2Secundario = filtrosGlobales.mes ? f2Base.filter(d => d.MES_LIMPIO === filtrosGlobales.mes) : f2Base;
-                let semTotales = {}; for(let i=1; i<=10; i++) { semTotales[i+'S'] = 0; }
-                f2Secundario.forEach(d => { for(let key in d.SEMUESTRES) { semTotales[key] += d.SEMUESTRES[key]; } });
-                actualizarGraficoConfig('semestres', 'chartSemestres', 'line', Object.keys(semTotales), [{ label: 'Estudiantes', data: Object.values(semTotales), borderColor: '#16a085', tension: 0.2, fill: false }], false, null);
-
-                let vincTotales = { 'Estudiantes': 0, 'Docentes': 0, 'Empleados': 0, 'Contratistas': 0, 'Niñ@s': 0, 'Egresados': 0 };
-                f2Secundario.forEach(d => {
-                    vincTotales['Estudiantes'] += d.VINCULACION.estudiantes; vincTotales['Docentes'] += d.VINCULACION.docentes;
-                    vincTotales['Empleados'] += d.VINCULACION.empleados; vincTotales['Contratistas'] += d.VINCULACION.contratistas;
-                    vincTotales['Niñ@s'] += d.VINCULACION.ninos; vincTotales['Egresados'] += (d.VINCULACION.egresadoITM + d.VINCULACION.egresadoLaSalle);
-                });
-                actualizarGraficoConfig('vinculacion', 'chartVinculacion', 'bar', Object.keys(vincTotales), [{ label: 'Cantidad', data: Object.values(vincTotales), backgroundColor: colorLib, borderRadius: 4 }], false, null);
-
-                let proTotales = { 'Comunidad ITM': 0, 'Externos': 0 };
-                f2Secundario.forEach(d => { proTotales['Comunidad ITM'] += d.PROCEDENCIA.comunidadITM; proTotales['Externos'] += d.PROCEDENCIA.externos; });
-                actualizarGraficoPie('procedencia', 'chartProcedencia', Object.keys(proTotales), Object.values(proTotales), ['#27ae60', '#bdc3c7']);
-            }
+        function manejarClicFiltro(tipoFiltro) {
+            return (evt, elementos, chart) => {
+                if (elementos.length > 0) {
+                    const clickeada = chart.data.labels[elementos[0].index];
+                    filtrosGlobales[tipoFiltro] = (filtrosGlobales[tipoFiltro] === clickeada) ? null : clickeada;
+                    procesarDatos();
+                }
+            };
         }
 
         function actualizarMapaGeorreferenciado(datosMapear) {
@@ -482,22 +485,34 @@
             });
         }
 
-        function actualizarGraficoConfig(idGrafico, idCanvas, tipo, etiquetas, configDatasets, mostrarLeyenda, funcionClic) {
+        // MOTOR DE RENDERIZADO UNIFICADO Y ESTABILIZADO (APILADOS INCLUIDOS)
+        function actualizarGraficoConfig(idGrafico, idCanvas, tipo, etiquetas, configDatasets, mostrarLeyenda, funcionClic, esApilado = false, esHorizontal = false) {
             const ctx = document.getElementById(idCanvas).getContext('2d');
             let opciones = { responsive: true, maintainAspectRatio: false, layout: { padding: { top: 30, right: 20 } }, plugins: { legend: { display: mostrarLeyenda } } };
-            if (tipo === 'bar') { 
-                let max = 0; 
-                configDatasets.forEach(ds => { 
-                    if(ds.data && ds.data.length > 0) {
-                        let m = Math.max(...ds.data); 
-                        if (m > max) max = m; 
-                    }
-                }); 
+            
+            if (esApilado) {
+                opciones.scales = { x: { stacked: true }, y: { stacked: true } };
+                opciones.plugins.datalabels = { display: false };
+            } else if (esHorizontal) {
+                opciones.indexAxis = 'y';
+                opciones.plugins.datalabels = { align: 'right', anchor: 'end' };
+                let max = 0; configDatasets.forEach(ds => { if(ds.data && ds.data.length > 0) { let m = Math.max(...ds.data); if(m > max) max = m; } });
+                opciones.scales = { x: { suggestedMax: max === 0 ? 10 : max * 1.15 } };
+            } else if (tipo === 'bar') { 
+                let max = 0; configDatasets.forEach(ds => { if(ds.data && ds.data.length > 0) { let m = Math.max(...ds.data); if(m > max) max = m; } });
                 opciones.scales = { y: { suggestedMax: max === 0 ? 10 : max * 1.15 } }; 
             }
+
             if (funcionClic) opciones.onClick = (e, el) => funcionClic(e, el, graficos[idGrafico]);
-            if (graficos[idGrafico]) { graficos[idGrafico].data.labels = etiquetas; graficos[idGrafico].data.datasets = configDatasets; graficos[idGrafico].options = opciones; graficos[idGrafico].update(); } 
-            else { graficos[idGrafico] = new Chart(ctx, { type: tipo, data: { labels: etiquetas, datasets: configDatasets }, options: opciones }); }
+            
+            if (graficos[idGrafico]) { 
+                graficos[idGrafico].data.labels = etiquetas; 
+                graficos[idGrafico].data.datasets = configDatasets; 
+                graficos[idGrafico].options = opciones; 
+                graficos[idGrafico].update(); 
+            } else { 
+                graficos[idGrafico] = new Chart(ctx, { type: tipo, data: { labels: etiquetas, datasets: configDatasets }, options: opciones }); 
+            }
         }
 
         function actualizarGraficoBasico(idGrafico, idCanvas, tipo, etiquetas, valores, colores, labelDataset, funcionClic) {
@@ -505,13 +520,9 @@
         }
 
         function actualizarGraficoHorizontalScroll(idGrafico, idCanvas, idWrapper, etiquetas, valores, arrayColores, labelDataset, funcionClic) {
-            const canvas = document.getElementById(idCanvas); const wrapper = document.getElementById(idWrapper); const ctx = canvas.getContext('2d');
+            const wrapper = document.getElementById(idWrapper); 
             wrapper.style.height = Math.max(wrapper.parentElement.clientHeight, etiquetas.length * 35) + 'px';
-            let maxVal = valores.length > 0 ? Math.max(...valores) : 10;
-            let ops = { indexAxis: 'y', responsive: true, maintainAspectRatio: false, plugins: { datalabels: { align: 'right', anchor: 'end' }, legend: { display: false } }, scales: { x: { suggestedMax: maxVal === 0 ? 10 : maxVal * 1.15 } } };
-            if (funcionClic) ops.onClick = (e, el) => funcionClic(e, el, graficos[idGrafico]);
-            if (graficos[idGrafico]) { graficos[idGrafico].data.labels = etiquetas; graficos[idGrafico].data.datasets[0].data = valores; graficos[idGrafico].data.datasets[0].backgroundColor = arrayColores; graficos[idGrafico].options = ops; graficos[idGrafico].update(); } 
-            else { graficos[idGrafico] = new Chart(ctx, { type: 'bar', data: { labels: etiquetas, datasets: [{ label: labelDataset, data: valores, backgroundColor: arrayColores, borderRadius: 4 }] }, options: ops }); }
+            actualizarGraficoConfig(idGrafico, idCanvas, 'bar', etiquetas, [{ label: labelDataset, data: valores, backgroundColor: arrayColores, borderRadius: 4 }], false, funcionClic, false, true);
         }
 
         function actualizarGraficoPie(idGrafico, idCanvas, etiquetas, valores, colores) {
