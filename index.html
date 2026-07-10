@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard MCNS | Ecosistema Integral V11.3</title>
+    <title>Dashboard MCNS | Ecosistema Integral V11.4</title>
     
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
@@ -72,7 +72,7 @@
 
     <div class="header">
         <div class="header-top">
-            <h2>📊 Ecosistema Integral MCNS | V11.3</h2>
+            <h2>📊 Ecosistema Integral MCNS | V11.4</h2>
             <div class="controles">
                 <div>
                     <label for="selectorAnio"><strong>Año: </strong></label>
@@ -124,12 +124,12 @@
     </div>
 
     <div class="panel panel-principal" id="panelEcosistemaMacro" style="margin-bottom: 20px;">
-        <h3>RADIOGRAFÍA GLOBAL DE ÁREAS SELECCIONADAS</h3>
+        <h3>COMPARATIVO TOTALES MCNS</h3>
         <div class="contenedor-grafico-principal"><canvas id="chartEcosistema"></canvas></div>
     </div>
 
     <div class="panel panel-principal" style="margin-bottom: 20px;">
-        <h3>EVOLUCIÓN MENSUAL APILADA</h3>
+        <h3>EVOLUCIÓN MENSUAL COMPARATIVA</h3>
         <p class="instruccion">👆 Clic en las barras de los meses para filtrar de manera cruzada toda la interfaz</p>
         <div class="contenedor-grafico-principal"><canvas id="chartAsistentes"></canvas></div>
     </div>
@@ -388,18 +388,18 @@
                 actualizarGraficoConfig('ecosistema', 'chartEcosistema', 'bar', etiquetasEco, [{ data: valoresEco, backgroundColor: coloresEco, borderRadius: 4 }], false, null, false, true);
 
                 let datasetsMensuales = [];
-                if(activas.comentadas) datasetsMensuales.push({ label: 'Visitas Comentadas', data: mesesOrden.map(m => f1Base.filter(d => !d.ES_INAUGURACION && d.MES_LIMPIO === m).reduce((s, d) => s + d.ASISTENTES, 0)), backgroundColor: colorCom, borderRadius: 0 });
-                if(activas.libres) datasetsMensuales.push({ label: 'Recorridos Libres', data: mesesOrden.map(m => f2Base.filter(d => d.MES_LIMPIO === m).reduce((s, d) => s + d.VISITAS_LIBRES, 0)), backgroundColor: colorLib, borderRadius: 0 });
-                if(activas.inauguraciones) datasetsMensuales.push({ label: 'Inauguraciones', data: mesesOrden.map(m => f1Base.filter(d => d.ES_INAUGURACION && d.MES_LIMPIO === m).reduce((s, d) => s + d.ASISTENTES, 0)), backgroundColor: colorInaug, borderRadius: 0 });
-                if(activas.aecc) datasetsMensuales.push({ label: 'Eventos AECC', data: mesesOrden.map(m => f3Base.filter(d => d.MES_LIMPIO === m).reduce((s, d) => s + d.AECC, 0)), backgroundColor: colorAECC, borderRadius: 0 });
-                if(activas.oa) datasetsMensuales.push({ label: 'Visitas OA', data: mesesOrden.map(m => f3Base.filter(d => d.MES_LIMPIO === m).reduce((s, d) => s + d.OA, 0)), backgroundColor: colorOA, borderRadius: 0 });
-                if(activas.ref) datasetsMensuales.push({ label: 'Visitas Referencia', data: mesesOrden.map(m => f3Base.filter(d => d.MES_LIMPIO === m).reduce((s, d) => s + d.REF, 0)), backgroundColor: colorRef, borderRadius: 0 });
-                if(activas.semilleros) datasetsMensuales.push({ label: 'Semilleros', data: mesesOrden.map(m => f3Base.filter(d => d.MES_LIMPIO === m).reduce((s, d) => s + d.SEM, 0)), backgroundColor: colorSem, borderRadius: 0 });
+                if(activas.comentadas) datasetsMensuales.push({ label: 'Visitas Comentadas', data: mesesOrden.map(m => f1Base.filter(d => !d.ES_INAUGURACION && d.MES_LIMPIO === m).reduce((s, d) => s + d.ASISTENTES, 0)), backgroundColor: colorCom, borderRadius: 4 });
+                if(activas.libres) datasetsMensuales.push({ label: 'Recorridos Libres', data: mesesOrden.map(m => f2Base.filter(d => d.MES_LIMPIO === m).reduce((s, d) => s + d.VISITAS_LIBRES, 0)), backgroundColor: colorLib, borderRadius: 4 });
+                if(activas.inauguraciones) datasetsMensuales.push({ label: 'Inauguraciones', data: mesesOrden.map(m => f1Base.filter(d => d.ES_INAUGURACION && d.MES_LIMPIO === m).reduce((s, d) => s + d.ASISTENTES, 0)), backgroundColor: colorInaug, borderRadius: 4 });
+                if(activas.aecc) datasetsMensuales.push({ label: 'Eventos AECC', data: mesesOrden.map(m => f3Base.filter(d => d.MES_LIMPIO === m).reduce((s, d) => s + d.AECC, 0)), backgroundColor: colorAECC, borderRadius: 4 });
+                if(activas.oa) datasetsMensuales.push({ label: 'Visitas OA', data: mesesOrden.map(m => f3Base.filter(d => d.MES_LIMPIO === m).reduce((s, d) => s + d.OA, 0)), backgroundColor: colorOA, borderRadius: 4 });
+                if(activas.ref) datasetsMensuales.push({ label: 'Visitas Referencia', data: mesesOrden.map(m => f3Base.filter(d => d.MES_LIMPIO === m).reduce((s, d) => s + d.REF, 0)), backgroundColor: colorRef, borderRadius: 4 });
+                if(activas.semilleros) datasetsMensuales.push({ label: 'Semilleros', data: mesesOrden.map(m => f3Base.filter(d => d.MES_LIMPIO === m).reduce((s, d) => s + d.SEM, 0)), backgroundColor: colorSem, borderRadius: 4 });
                 
                 if (filtrosGlobales.mes) { datasetsMensuales.forEach(ds => { ds.backgroundColor = mesesOrden.map(m => m === filtrosGlobales.mes ? ds.backgroundColor : '#e0e0e0'); }); }
                 
-                // Uso del pipeline estabilizado para el gráfico apilado
-                actualizarGraficoConfig('asistentes', 'chartAsistentes', 'bar', mesesOrden, datasetsMensuales, true, manejarClicFiltro('mes'), true);
+                // NOTA DE ACTUALIZACIÓN: El último parámetro "false" desactiva el apilamiento (stacked) y permite que se vean agrupadas (side-by-side)
+                actualizarGraficoConfig('asistentes', 'chartAsistentes', 'bar', mesesOrden, datasetsMensuales, true, manejarClicFiltro('mes'), false);
 
                 if (activas.comentadas) {
                     let f1Mod1 = f1Base.filter(d => !d.ES_INAUGURACION);
@@ -485,7 +485,6 @@
             });
         }
 
-        // MOTOR DE RENDERIZADO UNIFICADO Y ESTABILIZADO (APILADOS INCLUIDOS)
         function actualizarGraficoConfig(idGrafico, idCanvas, tipo, etiquetas, configDatasets, mostrarLeyenda, funcionClic, esApilado = false, esHorizontal = false) {
             const ctx = document.getElementById(idCanvas).getContext('2d');
             let opciones = { responsive: true, maintainAspectRatio: false, layout: { padding: { top: 30, right: 20 } }, plugins: { legend: { display: mostrarLeyenda } } };
@@ -520,9 +519,13 @@
         }
 
         function actualizarGraficoHorizontalScroll(idGrafico, idCanvas, idWrapper, etiquetas, valores, arrayColores, labelDataset, funcionClic) {
-            const wrapper = document.getElementById(idWrapper); 
+            const canvas = document.getElementById(idCanvas); const wrapper = document.getElementById(idWrapper); const ctx = canvas.getContext('2d');
             wrapper.style.height = Math.max(wrapper.parentElement.clientHeight, etiquetas.length * 35) + 'px';
-            actualizarGraficoConfig(idGrafico, idCanvas, 'bar', etiquetas, [{ label: labelDataset, data: valores, backgroundColor: arrayColores, borderRadius: 4 }], false, funcionClic, false, true);
+            let maxVal = valores.length > 0 ? Math.max(...valores) : 10;
+            let ops = { indexAxis: 'y', responsive: true, maintainAspectRatio: false, plugins: { datalabels: { align: 'right', anchor: 'end' }, legend: { display: false } }, scales: { x: { suggestedMax: maxVal === 0 ? 10 : maxVal * 1.15 } } };
+            if (funcionClic) ops.onClick = (e, el) => funcionClic(e, el, graficos[idGrafico]);
+            if (graficos[idGrafico]) { graficos[idGrafico].data.labels = etiquetas; graficos[idGrafico].data.datasets[0].data = valores; graficos[idGrafico].data.datasets[0].backgroundColor = arrayColores; graficos[idGrafico].options = ops; graficos[idGrafico].update(); } 
+            else { graficos[idGrafico] = new Chart(ctx, { type: 'bar', data: { labels: etiquetas, datasets: [{ label: labelDataset, data: valores, backgroundColor: arrayColores, borderRadius: 4 }] }, options: ops }); }
         }
 
         function actualizarGraficoPie(idGrafico, idCanvas, etiquetas, valores, colores) {
