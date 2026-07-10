@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard MCNS | Ecosistema Integral V11.5 Definitiva</title>
+    <title>Dashboard MCNS | Ecosistema Integral V11.7</title>
     
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
@@ -43,9 +43,10 @@
 
         .dashboard-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px; margin-bottom: 30px; }
         .panel { background: white; padding: 20px; border-radius: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
-        .panel-principal { grid-column: 1 / -1; display: flex; flex-direction: column; align-items: center; }
+        .panel-principal { grid-column: 1 / -1; display: flex; flex-direction: column; align-items: center; width: 100%; box-sizing: border-box; }
         
-        .contenedor-grafico-principal { position: relative; width: 100%; max-width: 1000px; height: 400px; }
+        /* AJUSTE CLAVE: max-width a 1400px y height a 450px para aprovechar monitores grandes */
+        .contenedor-grafico-principal { position: relative; width: 100%; max-width: 1400px; height: 450px; margin: 0 auto; }
         .contenedor-grafico-secundario { position: relative; width: 100%; height: 300px; }
         
         .layout-territorial { display: grid; grid-template-columns: 2fr 1fr; gap: 20px; margin-bottom: 30px; }
@@ -71,7 +72,7 @@
 
     <div class="header">
         <div class="header-top">
-            <h2>📊 Ecosistema Integral MCNS | V11.5 Definitiva</h2>
+            <h2>📊 Ecosistema Integral MCNS | V11.7</h2>
             <div class="controles">
                 <div>
                     <label for="selectorAnio"><strong>Año: </strong></label>
@@ -199,8 +200,13 @@
     </div>
 
     <script>
+        // AUMENTO DE FUENTE GLOBAL (De 10 a 12) para mejor legibilidad
         Chart.register(ChartDataLabels);
-        Chart.defaults.set('plugins.datalabels', { color: '#2c3e50', anchor: 'end', align: 'top', font: { weight: 'bold', size: 10 }, formatter: (value) => { return value > 0 ? value : ''; } });
+        Chart.defaults.set('plugins.datalabels', { 
+            color: '#2c3e50', anchor: 'end', align: 'top', offset: 2, 
+            font: { weight: 'bold', size: 12 }, 
+            formatter: (value) => { return value > 0 ? value : ''; } 
+        });
 
         const urlComentadas = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vS7f26O3sj6abtatPWdf3wa4hdGxMI5gjOZU--SYrJ92jTxZ9Ch6LrTESm_XjWeIRFTrnKJq-c2aed9/pub?output=csv';
         const urlLibres = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSx-9TxdT25K0DSLKTO4YMhWsH0aXkRvMn1Smzj42pfjwEmYgdkhvJyrDQKkxAI8Q/pub?output=csv';
@@ -386,8 +392,10 @@
                 
                 actualizarGraficoConfig('ecosistema', 'chartEcosistema', 'bar', etiquetasEco, [{ data: valoresEco, backgroundColor: coloresEco, borderRadius: 4 }], false, null, false, true);
 
-                // APLICACIÓN DEL GROSOR DINÁMICO (barPercentage y maxBarThickness)
-                let opBarras = { barPercentage: 0.85, categoryPercentage: 0.9, maxBarThickness: 45, borderRadius: 4 };
+                // --- CONFIGURACIÓN DE GROSOR EXTREMO ---
+                // Se aumenta categoryPercentage y barPercentage a 0.95 para que eliminen los espacios blancos.
+                // Se elimina maxBarThickness para que se expandan sin límites restrictivos.
+                let opBarras = { barPercentage: 0.95, categoryPercentage: 0.95, borderRadius: 3 };
                 let datasetsMensuales = [];
                 
                 if(activas.comentadas) datasetsMensuales.push({ label: 'Visitas Comentadas', data: mesesOrden.map(m => f1Base.filter(d => !d.ES_INAUGURACION && d.MES_LIMPIO === m).reduce((s, d) => s + d.ASISTENTES, 0)), backgroundColor: colorCom, ...opBarras });
@@ -488,7 +496,9 @@
 
         function actualizarGraficoConfig(idGrafico, idCanvas, tipo, etiquetas, configDatasets, mostrarLeyenda, funcionClic, esApilado = false, esHorizontal = false) {
             const ctx = document.getElementById(idCanvas).getContext('2d');
-            let opciones = { responsive: true, maintainAspectRatio: false, layout: { padding: { top: 30, right: 20 } }, plugins: { legend: { display: mostrarLeyenda } } };
+            
+            // SE AÑADE PADDING SUPERIOR para que los números grandes no se corten arriba
+            let opciones = { responsive: true, maintainAspectRatio: false, layout: { padding: { top: 40, right: 20 } }, plugins: { legend: { display: mostrarLeyenda } } };
             
             if (esApilado) {
                 opciones.scales = { x: { stacked: true }, y: { stacked: true } };
