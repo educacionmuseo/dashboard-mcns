@@ -251,8 +251,10 @@
                     GRUPOS: parseInt(fila['NÚMERO DE GRUPOS POR INSTITUCIÓN U ORGANIZACIÓN COMUNITARIA']) || 0, M: mVal, F: fVal,
                     EDAD: fila['RANGO DE EDAD'] ? String(fila['RANGO DE EDAD']).trim() : 'Sin clasificar',
                     COMUNA: fila['Comuna'] ? String(fila['Comuna']).trim() : 'Sin Registro',
+                    INSTITUCION: fila['INSTITUCIÓN U ORGANIZACIÓN'] ? String(fila['INSTITUCIÓN U ORGANIZACIÓN']).trim() : 'Institución No Especificada',
                     LAT: parseFloat(latStr), LON: parseFloat(lonStr),
                     DESCRIPTOR: descriptor, ES_INAUGURACION: esInauguracion
+                };
                 };
             }).filter(d => d.ASISTENTES > 0 || d.GRUPOS > 0);
 
