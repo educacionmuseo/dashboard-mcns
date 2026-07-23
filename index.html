@@ -244,7 +244,7 @@
                 let mVal = 0; let fVal = 0;
                 for (let k in fila) { if (k.trim() === 'M') mVal = parseInt(fila[k]) || 0; if (k.trim() === 'F') fVal = parseInt(fila[k]) || 0; }
                 let descriptor = fila['DESCRIPTOR DE GRUPO'] ? String(fila['DESCRIPTOR DE GRUPO']).trim() : 'Sin Registro';
-                let esInauguracion = (descriptor.toLowerCase() === 'inauguración');
+                let esInauguracion = descriptor.toLowerCase().includes('inauguraci');
                 let latStr = String(fila['LATITUD'] || '').replace(',', '.'); let lonStr = String(fila['LONGITUD'] || '').replace(',', '.');
                 return {
                     MES_LIMPIO: mesLimpio, ANIO: anioStr, ASISTENTES: parseInt(fila['NÚMERO TOTAL DE PERSONAS ASISTENTES']) || 0,
