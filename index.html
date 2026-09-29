@@ -3,14 +3,16 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard MCNS | Estadísticas Generales de Públicos MCNS ITM V11.9</title>
+    <title>Dashboard MCNS | Estadísticas Generales de Públicos MCNS ITM V11.10</title>
     
+    <!-- LIBRERÍAS -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.0.0"></script>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
+    <!-- ESTILOS CSS -->
     <style>
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #eef2f5; color: #333; margin: 0; padding: 20px; }
         
@@ -71,7 +73,7 @@
 
     <div class="header">
         <div class="header-top">
-            <h2>📊 Estadísticas Generales de Públicos MCNS ITM | V11.9</h2>
+            <h2>📊 Estadísticas Generales de Públicos MCNS ITM | V11.10</h2>
             <div class="controles">
                 <div>
                     <label for="selectorAnio"><strong>Año: </strong></label>
@@ -438,9 +440,15 @@
                     actualizarGraficoBasico('grupos', 'chartGrupos', 'bar', mesesOrden, gruposMes, '#7f8c8d', 'Grupos', null);
 
                     let edadMap = {}; f1Mod1.forEach(d => { if (d.EDAD !== 'Sin clasificar') edadMap[d.EDAD] = (edadMap[d.EDAD] || 0) + d.ASISTENTES; });
-                    let labelsEdad = Object.keys(edadMap).sort();
+                    
+                    // --- NUEVA REGLA DE ORDENAMIENTO (De menor a mayor edad) ---
+                    let labelsEdad = Object.keys(edadMap).sort((a, b) => {
+                        let valA = a.toLowerCase().includes('heterog') ? 999 : (parseInt(a.match(/\d+/)) || 998);
+                        let valB = b.toLowerCase().includes('heterog') ? 999 : (parseInt(b.match(/\d+/)) || 998);
+                        return valA - valB;
+                    });
+                    
                     let coloresEdad = labelsEdad.map(e => (filtrosGlobales.edad && filtrosGlobales.edad !== e) ? '#e0e0e0' : colorCom);
-                    // Aquí mandamos actualizar el gráfico de Edad
                     actualizarGraficoBasico('edad', 'chartEdad', 'bar', labelsEdad, labelsEdad.map(e => edadMap[e]), coloresEdad, 'Asistentes', manejarClicFiltro('edad'));
 
                     let totalM = 0; let totalF = 0; f1Mod1.forEach(d => { totalM += d.M; totalF += d.F; });
@@ -530,35 +538,23 @@
                 opciones.scales = { y: { suggestedMax: max === 0 ? 10 : max * 1.15 } }; 
             }
 
-            // EXCEPCIÓN 1: Gráfico Principal
             if (idGrafico === 'asistentes' && !esApilado) {
-                opciones.plugins.datalabels = {
-                    font: { size: 9, weight: 'bold' },
-                    offset: 2,
-                    anchor: 'end',
-                    align: 'top'
-                };
+                opciones.plugins.datalabels = { font: { size: 9, weight: 'bold' }, offset: 2, anchor: 'end', align: 'top' };
             }
 
-            // EXCEPCIÓN 2: Gráfico de Edad
+            // --- EXCEPCIÓN 2: Gráfico de Edad ---
             if (idGrafico === 'edad') {
                 opciones.plugins.datalabels = {
-                    font: { size: 9, weight: 'bold' }, // Números de arriba más pequeños
-                    offset: 2,
-                    anchor: 'end',
-                    align: 'top'
+                    font: { size: 9, weight: 'bold' }, // Números superiores más pequeños
+                    offset: 2, anchor: 'end', align: 'top'
                 };
-                
-                // Asegurar que exista la configuración del eje X
                 if (!opciones.scales) opciones.scales = {};
                 if (!opciones.scales.x) opciones.scales.x = {};
-                
-                // Forzar etiquetas y cambiar su ángulo/tamaño
                 opciones.scales.x.ticks = {
-                    autoSkip: false,      // Obliga a mostrar todas las etiquetas
-                    maxRotation: 45,      // Ángulo de inclinación
+                    autoSkip: false,  // Prohíbe ocultar etiquetas
+                    maxRotation: 45,  // Ángulo de inclinación estricto
                     minRotation: 45,
-                    font: { size: 9 }     // Letra más pequeña en los textos de abajo
+                    font: { size: 9 } // Tamaño de letra inferior más pequeño
                 };
             }
 
