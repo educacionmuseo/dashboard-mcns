@@ -75,7 +75,8 @@
             <div class="controles">
                 <div>
                     <label for="selectorAnio"><strong>Año: </strong></label>
-                    <select id="selectorAnio" onchange="procesarDatos()">
+                    <!-- SE LLAMA A LA NUEVA FUNCIÓN sincronizarAnio() EN LUGAR DE procesarDatos() -->
+                    <select id="selectorAnio" onchange="sincronizarAnio(this.value)">
                         <option value="TODOS">Todos los años</option>
                     </select>
                 </div>
@@ -159,6 +160,15 @@
         </div>
         
         <h2 class="seccion-titulo" id="tituloMapa">🌍 Análisis Territorial (Visitas Comentadas Puras)</h2>
+        
+        <!-- NUEVO: CLON DEL SELECTOR DE AÑO ENCADENADO AL MAPA -->
+        <div style="text-align: center; margin-bottom: 15px;">
+            <label for="selectorAnioMapa"><strong>Año: </strong></label>
+            <select id="selectorAnioMapa" style="padding: 6px 12px; font-size: 15px; border-radius: 5px; border: 1px solid #ccc; cursor: pointer; background: #fdfdfd;" onchange="sincronizarAnio(this.value)">
+                <option value="TODOS">Todos los años</option>
+            </select>
+        </div>
+
         <div class="leyenda-colores" id="leyendaMapa">
             <div><span class="dot" style="background-color: #27ae60;"></span> ITM</div>
             <div><span class="dot" style="background-color: #2980b9;"></span> Medellín (Comunas/Corregimientos)</div>
@@ -199,7 +209,7 @@
     </div>
 
     <script>
-        // CONFIGURACIÓN GLOBAL (Mantiene la fuente en 12 para los gráficos inferiores)
+        // CONFIGURACIÓN GLOBAL
         Chart.register(ChartDataLabels);
         Chart.defaults.set('plugins.datalabels', { 
             color: '#2c3e50', anchor: 'end', align: 'top', offset: 2, 
@@ -299,15 +309,27 @@
             llenarSelectorAnios(); inicializarMapa(); procesarDatos();
         }).catch(err => console.error("Error cargando fuentes:", err));
 
+        // NUEVO: Llena AMBOS selectores al mismo tiempo
         function llenarSelectorAnios() {
-            const selector = document.getElementById('selectorAnio');
-            Array.from(aniosDetectados).sort().forEach(anio => { let opcion = document.createElement('option'); opcion.value = anio; opcion.text = "Año " + anio; selector.appendChild(opcion); });
+            const selectorPrincipal = document.getElementById('selectorAnio');
+            const selectorMapa = document.getElementById('selectorAnioMapa');
+            Array.from(aniosDetectados).sort().forEach(anio => { 
+                let opcion1 = document.createElement('option'); opcion1.value = anio; opcion1.text = "Año " + anio; selectorPrincipal.appendChild(opcion1);
+                let opcion2 = document.createElement('option'); opcion2.value = anio; opcion2.text = "Año " + anio; selectorMapa.appendChild(opcion2);
+            });
+        }
+
+        // NUEVA FUNCION: Sincroniza ambos menús y procesa los datos
+        function sincronizarAnio(valorSeleccionado) {
+            document.getElementById('selectorAnio').value = valorSeleccionado;
+            document.getElementById('selectorAnioMapa').value = valorSeleccionado;
+            procesarDatos();
         }
 
         function inicializarMapa() {
             mapaInstancia = L.map('mapaMedellin').setView([6.2600, -75.5800], 12);
             
-            // NUEVO PROVEEDOR DE MAPA: Esri Light Gray
+            // NUEVO PROVEEDOR ESRI: Mapa gris sin API Key
             L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}', { 
                 attribution: 'Tiles &copy; Esri &mdash; Esri, DeLorme, NAVTEQ' 
             }).addTo(mapaInstancia);
@@ -514,7 +536,6 @@
                 opciones.scales = { y: { suggestedMax: max === 0 ? 10 : max * 1.15 } }; 
             }
 
-            // --- REGLA DE EXCEPCIÓN: Letra más pequeña (tamaño 9) solo para el panel mensual ---
             if (idGrafico === 'asistentes' && !esApilado) {
                 opciones.plugins.datalabels = {
                     font: { size: 9, weight: 'bold' },
@@ -561,6 +582,7 @@
         function resetearFiltros() { 
             filtrosGlobales = { mes: null, comuna: null, edad: null, descriptor: null };
             document.getElementById('selectorAnio').value = "TODOS";
+            document.getElementById('selectorAnioMapa').value = "TODOS";
             const checkboxes = document.querySelectorAll('.chk-item input');
             checkboxes.forEach(chk => chk.checked = true);
             procesarDatos(); 
