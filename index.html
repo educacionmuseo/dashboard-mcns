@@ -306,7 +306,12 @@
 
         function inicializarMapa() {
             mapaInstancia = L.map('mapaMedellin').setView([6.2600, -75.5800], 12);
-            L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', { attribution: '&copy; OpenStreetMap &copy; CARTO' }).addTo(mapaInstancia);
+            
+            // NUEVO PROVEEDOR DE MAPA: Esri Light Gray
+            L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}', { 
+                attribution: 'Tiles &copy; Esri &mdash; Esri, DeLorme, NAVTEQ' 
+            }).addTo(mapaInstancia);
+            
             capaMarcadores = L.layerGroup().addTo(mapaInstancia);
         }
 
